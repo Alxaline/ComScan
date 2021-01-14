@@ -136,4 +136,6 @@ dmypy.json
 .~lock*
 
 # nifti files
-*.nii
+*.nii*
+*.npz
+*.npy
