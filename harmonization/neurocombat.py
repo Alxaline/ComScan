@@ -1,11 +1,6 @@
-# pip install neuroCombat
-# inspired https://github.com/Warvito/neurocombat_sklearn/blob/master/neurocombat_sklearn/neurocombat_sklearn.py
 import warnings
 from typing import Union, List, Tuple, Optional
 
-# TODO: comment for Rad
-# broadcasting to same shape
-# np.delete(stand_mean, range(1,10), axis=1).shape
 import numpy as np
 import pandas as pd
 from neuroCombat.neuroCombat import make_design_matrix, standardize_across_features, fit_LS_model_and_find_priors, \
@@ -14,35 +9,36 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
 
-# from combat_harmonization.clustering import one_hot_encoder
-# from combat_harmonization.clustering import optimal_clustering, scaler_encoder
-
-covars = pd.DataFrame([{"covar_1": 1, "covar_2": 25, "covar_3": 50}, {"covar_1": 41, "covar_2": 5, "covar_3": 36}])
-
-pd.DataFrame([{"features_1": 0.97, "features_2": 2, "sites": 0}, {"features_1": 1.35, "features_2": 1.01, "sites": 1},
-              {"features_1": 1.43, "features_2": 1.09, "sites": 1}])
-
-
-def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarray]:
-    return df.columns.get_indexer(query_cols)
+from harmonization.clustering import optimal_clustering
+from harmonization.utils import get_column_index, one_hot_encoder, scaler_encoder
 
 
 def _check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
     """
-
-    :param df:
-    :param _vars:
+    Check that a list of columns name exist in a DataFrame.
+    :param df: a DataFrame
+    :param _vars: List of columns name to check
+    :return index of columns name
+    :raise Value error if missing features
     """
     column_index = get_column_index(df, _vars)
     is_feature_present = column_index != -1
     if not isinstance(_vars, np.ndarray):
         _vars = np.array(_vars)
-    assert is_feature_present.all(), ValueError(f"Missing features: {', '.join(_vars[~is_feature_present])}")
+
+    if not is_feature_present.all():
+        raise ValueError(f"Missing features: {', '.join(_vars[~is_feature_present])}")
 
     return column_index
 
 
 def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
+    """
+    Check if samples present single covariate
+    :param df: a DataFrame
+    :param _vars: List of columns name to check
+    :raise ValueError if a covariate contain a unique sample
+    """
     for _var in _vars:
         if 1 in df[_var].value_counts().tolist():
             raise ValueError(f"Combat harmonization requires more than one sample. "
@@ -50,22 +46,15 @@ def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
 
 
 def _check_nans(df: pd.DataFrame) -> None:
+    """
+    Check if NaNs are present in dataframe
+    :param df: a DataFrame
+    :raise: ValueError if NaNs are present
+    """
     if df.isnull().values.any():
         raise ValueError("NaN values found on data. \n"
                          "Combat can not work with NaN values, maybe drop samples or features columns"
                          " containing these values")
-
-
-# def _get_cat_covariates(X: pd.DataFrame):
-#     cat_var_df = column_var_dtype(X, identify_dtypes=("object", "bool", "category"))
-#     cat_list = cat_var_df.loc[:, "name"]
-#     return cat_list
-#
-#
-# def _get_cont_covariates(X: pd.DataFrame):
-#     cont_var_df = column_var_dtype(X, identify_dtypes=("int", "float"))
-#     cont_list = cont_var_df.loc[:, "name"]
-#     return cont_list
 
 
 class Combat(BaseEstimator, TransformerMixin):
@@ -367,9 +356,9 @@ class RadCombat(Combat):
 
     Combat need to have well-known acquisition sites or scanner to harmonize features.
     It is sometimes difficult to define an imaging acquisition site if on two sites imaging parameters
-    can be really similar. combat_harmonization gives the possibility to automatically determine the number of sites
+    can be really similar. harmonization gives the possibility to automatically determine the number of sites
     and their association based on imaging features (e.g. dicom tags) by clustering.
-    Thus combat_harmonization can be used on data not seen during training because it can predict which imager best matches
+    Thus harmonization can be used on data not seen during training because it can predict which imager best matches
     the one it has seen during training.
 
 
@@ -437,15 +426,15 @@ class RadCombat(Combat):
     >>> {"features_1": 1.43, "site_features_0": 1.09, "site_features_1": 1},
     >>> {"features_1": 0.85, "site_features_0": 2.3, "site_features_1": 0}])
 
-    >>> rad_combat = combat_harmonization(features=["features_1"], sites_features=["site_features_0", "site_features_1"],
+    >>> rad_combat = RadCombat(features=["features_1"], sites_features=["site_features_0", "site_features_1"],
     >>> continuous_cluster_features=["site_features_0", "site_features_1"])
-    >>> print(combat.fit(data))
+    >>> print(rad_combat.fit(data))
     Combat(continuous_covariates=[], discrete_covariates=[],
        features=['features_1', 'features_2'], ref_site=1, sites=['sites'])
-    >>> print(combat.gamma_star_)
+    >>> print(rad_combat.gamma_star_)
     [[-11.85476756  27.30493785]
     [  0.           0.        ]]
-    >>> print(combat.transform(data))
+    >>> print(rad_combat.transform(data))
     [[1.40593957 1.01395564 0.        ]
     [1.35       1.01       1.        ]
     [1.43       1.09       1.        ]
@@ -517,7 +506,8 @@ class RadCombat(Combat):
 
         Parameters
         ----------
-        X : array-like or DataFrame of shape (n_samples, n_features). Requires the columns needed by the combat_harmonization().
+        X : array-like or DataFrame of shape (n_samples, n_features).
+            Requires the columns needed by the harmonization().
             The data used to find adjustments.
         *_ : y in scikit learn: None
             Ignored.
@@ -525,13 +515,13 @@ class RadCombat(Combat):
         Returns
         -------
         self : object
-            Fitted combat_harmonization estimator.
+            Fitted harmonization estimator.
         """
         self.reset()
 
         clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
         columns_continuous_cluster_features = self._check_data_cluster(X)
-        print("ok")
+
         clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
 
         self.cls_, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, _, _ = optimal_clustering(
@@ -664,8 +654,8 @@ class RadCombat(Combat):
 
         return clustering_data, columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features
 
-    def _add_sites(self, X: Union[np.ndarray, pd.DataFrame], labels: Union[np.ndarray, List]) -> Union[
-        np.ndarray, pd.DataFrame]:
+    def _add_sites(self, X: Union[np.ndarray, pd.DataFrame], labels: Union[np.ndarray, List]) \
+            -> Union[np.ndarray, pd.DataFrame]:
         """
         Add sites find by clustering to X
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
