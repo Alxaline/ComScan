@@ -1,0 +1,16 @@
+simpleitk>=2.0.1
+argparse~=1.4.0
+pyradiomics>=3.0.0
+numpy>=1.19.4
+pandas>=1.2.0
+git+git://github.com/Alxaline/cBrainMRIPrePro.git
+
+
+pydicom>=2.1.2
+six>=1.15.0
+kneed>=0.7.0
+scipy>=1.5.4
+sklearn>=0.0
+scikit-learn>=0.24.0
+matplotlib>=3.3.3
+neurocombat>=0.2.7
