@@ -135,3 +135,5 @@ dmypy.json
 .fuse*
 .~lock*
 
+# nifti files
+*.nii

@@ -1,5 +1,6 @@
-from typing import List, Union, Sequence
+from typing import Tuple, List, Union, Sequence
 
+import SimpleITK as sitk
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -11,7 +12,7 @@ def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarra
     return df.columns.get_indexer(query_cols)
 
 
-def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object",)):
+def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object",)) -> pd.DataFrame:
     """
     identify type of columns in DataFrame
     :param df: input dataframe
@@ -31,7 +32,7 @@ def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object
     return cat_var_df
 
 
-def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True):
+def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True) -> pd.DataFrame:
     """
     Encoding categorical feature in the dataframe, allow possibility to keep NaN.
     The categorical feature index and name are from cat_var function. These columns need to be "object" dtypes.
@@ -53,7 +54,7 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
     return df
 
 
-def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()):
+def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()) -> pd.DataFrame:
     """
     Apply sklearn scaler to columns.
     :param df: input dataframe
@@ -66,3 +67,32 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     df[columns] = le.fit_transform(df[columns])
 
     return df
+
+
+def load_nifty_volume_as_array(input_path_file: str) -> Tuple[np.ndarray, Tuple[Tuple, Tuple, Tuple]]:
+    """
+    Load nifty image into numpy array [z,y,x] axis order.
+    The output array shape is like [Depth, Height, Width].
+    :param input_path_file: input path file, should be *.nii or *.nii.gz
+    :return: a numpy data array, (with header)
+    """
+    img = sitk.ReadImage(input_path_file)
+    data = sitk.GetArrayFromImage(img)
+
+    origin, spacing, direction = img.GetOrigin(), img.GetSpacing(), img.GetDirection()
+    return data, (origin, spacing, direction)
+
+
+def mat_to_bytes(nrows: int, ncols: int, dtype: int = 32, out: str = "GB") -> float:
+    """
+    # https://gist.github.com/dimalik/f4609661fb83e3b5d22e7550c1776b90
+    Calculate the size of a numpy array in bytes.
+    :param nrows: the number of rows of the matrix.
+    :param ncols: the number of columns of the matrix.
+    :param dtype: the size of each element in the matrix. Defaults to 32bits.
+    :param out: the output unit. Defaults to gigabytes (GB)
+    :returns: the size of the matrix in the given unit
+    :rtype: a float
+    """
+    sizes = {v: i for i, v in enumerate("BYTES KB MB GB TB".split())}
+    return nrows * ncols * dtype / 8 / 1024. ** sizes[out]

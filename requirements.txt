@@ -14,3 +14,5 @@ sklearn>=0.0
 scikit-learn>=0.24.0
 matplotlib>=3.3.3
 neurocombat>=0.2.7
+
+git+git://github.com/nipy/nipy.git
