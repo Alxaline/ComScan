@@ -19,10 +19,12 @@
 # of
 # the
 # inputs
+import os
 import re
 from typing import List, Tuple, Union, Optional, Callable
-from tqdm import tqdm
+
 import numpy as np
+from tqdm import tqdm
 
 from harmonization.utils import load_nifty_volume_as_array
 from harmonization.utils import mat_to_bytes
@@ -79,13 +81,27 @@ def _compute_mask_files(input_path: List[str],
         The main of all the images used to estimate the mask. Only
         provided if `return_mean` is True.
     """
-    return compute_mask_files(input_filename=input_path, output_filename=output_path,
-                              return_mean=return_mean, m=m, M=M, cc=cc, exclude_zeros=exclude_zeros, opening=opening)
+
+    if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    output = compute_mask_files(input_filename=input_path, output_filename=output_path,
+                                return_mean=return_mean, m=m, M=M, cc=cc, exclude_zeros=exclude_zeros, opening=opening)
+
+    if return_mean:
+        mask, mean_volume = output[0], output[1]
+    else:
+        mask, mean_volume = output, None
+
+    # nibabel array is x,y,z and sitk is z,y,x -> convert nibabel to sitk
+    mask = np.swapaxes(mask, 0, 2)
+
+    return mask, mean_volume
 
 
 def flatten_nifti_files(input_path: List[str], mask: Union[str, np.ndarray],
                         output_flattened_array_path: str = 'flattened_array',
-                        dtype: Optional[np.dtype, Callable] = np.float16, save: bool = True,
+                        dtype: [np.dtype, Callable] = np.float16, save: bool = True,
                         compress_save: bool = True):
     """
     Flattened list of nifti files to a flattened array [n_images, n_masked_voxels] and save to .npy or .npz if compressed
@@ -96,7 +112,7 @@ def flatten_nifti_files(input_path: List[str], mask: Union[str, np.ndarray],
     :param save: save the flattened array
     :param dtype: dtype of the output flattened array. Default is float 16 to save memory
     :param compress_save: If true compress the numpy array into .npz
-    :return:
+    :return: flattened array [n_images, n_masked_voxels]
     """
     if isinstance(mask, str):
         mask, _ = load_nifty_volume_as_array(input_path_file=mask)
@@ -118,6 +134,8 @@ def flatten_nifti_files(input_path: List[str], mask: Union[str, np.ndarray],
         flattened_array[i, :] = image_arr[logical_mask]
 
     if save:
+        if not os.path.exists(os.path.dirname(output_flattened_array_path)):
+            os.makedirs(os.path.dirname(output_flattened_array_path), exist_ok=True)
         if compress_save:
             np.savez_compressed(output_flattened_array_path, flattened_array)
         else:

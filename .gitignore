@@ -139,3 +139,6 @@ dmypy.json
 *.nii*
 *.npz
 *.npy
+
+# result folder
+fit_data

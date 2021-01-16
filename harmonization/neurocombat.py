@@ -1,3 +1,4 @@
+import os
 import warnings
 from typing import Union, List, Tuple, Optional
 
@@ -8,9 +9,12 @@ from neuroCombat.neuroCombat import make_design_matrix, standardize_across_featu
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
+from tqdm import tqdm
 
-from harmonization.clustering import optimal_clustering
-from harmonization.utils import get_column_index, one_hot_encoder, scaler_encoder
+# from harmonization.clustering import optimal_clustering
+# from harmonization.nifti import _compute_mask_files, flatten_nifti_files
+# from harmonization.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
+#     load_nifty_volume_as_array, save_to_nii
 
 
 def _check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
@@ -25,10 +29,8 @@ def _check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
     is_feature_present = column_index != -1
     if not isinstance(_vars, np.ndarray):
         _vars = np.array(_vars)
-
     if not is_feature_present.all():
-        raise ValueError(f"Missing features: {', '.join(_vars[~is_feature_present])}")
-
+        raise ValueError(f"Missing features: {', '.join(_vars[~is_feature_present].astype(str))}")
     return column_index
 
 
@@ -57,6 +59,9 @@ def _check_nans(df: pd.DataFrame) -> None:
                          " containing these values")
 
 
+
+
+
 class Combat(BaseEstimator, TransformerMixin):
     """
     Harmonize/normalize features using Combat's [1] parametric empirical Bayes framework
@@ -82,7 +87,7 @@ class Combat(BaseEstimator, TransformerMixin):
 
     parametric : Performed parametric adjustements.
         Default is True.
-     
+
     mean_only : Adjust only the mean (no scaling)
         Default is False.
 
@@ -140,7 +145,8 @@ class Combat(BaseEstimator, TransformerMixin):
                  discrete_covariates: Optional[Union[List[str], List[int], str, int]] = None,
                  continuous_covariates: Optional[Union[List[str], List[int], str, int]] = None,
                  ref_site: Optional[Union[str, int]] = None,
-                 empirical_bayes: bool = True, parametric: bool = True,
+                 empirical_bayes: bool = True,
+                 parametric: bool = True,
                  mean_only: bool = False,
                  copy: bool = True) -> None:
 
@@ -154,7 +160,7 @@ class Combat(BaseEstimator, TransformerMixin):
         self.mean_only = mean_only
         self.copy = copy
 
-    def _reset(self) -> None:
+    def __reset(self) -> None:
         """
         Reset internal data-dependent state of the combat fit, if necessary.
         __init__ parameters are not touched.
@@ -169,7 +175,7 @@ class Combat(BaseEstimator, TransformerMixin):
             del self.info_dict_transform_
             del self.stand_mean_transform_
 
-    def fit(self, X: Union[np.ndarray, pd.DataFrame], *_: Optional[Union[np.ndarray, pd.DataFrame]]) -> "Combat":
+    def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "Combat":
         """
         Compute the stand mean, var pooled, gamma star, delta star to be used for later adjusted data.
 
@@ -177,7 +183,7 @@ class Combat(BaseEstimator, TransformerMixin):
         ----------
         X : array-like or DataFrame of shape (n_samples, n_features). Requires the columns needed by the Combat().
             The data used to find adjustments.
-        *_ : y in scikit learn: None
+        *y : y in scikit learn: None
             Ignored.
 
         Returns
@@ -185,7 +191,7 @@ class Combat(BaseEstimator, TransformerMixin):
         self : object
             Fitted combat estimator.
         """
-        self._reset()
+        self.__reset()
 
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns \
             = self._check_data(X)
@@ -263,7 +269,7 @@ class Combat(BaseEstimator, TransformerMixin):
         check_is_fitted(self)
 
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns \
-            = self._check_data(X)
+            = self._check_data(X, check_single_covariate=False)
 
         X = self._validate_data(X, copy=self.copy, estimator=self)
 
@@ -282,35 +288,49 @@ class Combat(BaseEstimator, TransformerMixin):
             'sample_per_batch': sample_per_batch.astype('int'),
             'batch_info': [list(np.where(X[:, columns_sites] == idx)[0]) for idx in batch_levels]
         }
-
+        print("X before", X.shape)
         # create design matrix
         design = make_design_matrix(Y=X, batch_col=columns_sites,
                                     cat_cols=columns_discrete_covariates, num_cols=columns_continuous_covariates,
                                     ref_level=self.info_dict_transform_["ref_level"])
 
+        # apply just one instance
+        if X.shape[0] == 1:
+            # encode as fit
+            design_batch = np.zeros((1, self.info_dict_fit_["n_batch"]))
+            design_batch[:, int(self.info_dict_transform_["batch_levels"])] = 1
+            design = np.concatenate((design_batch, design[:, 1:]), axis=1)
+            self.info_dict_transform_["n_batch"] = self.info_dict_fit_["n_batch"]
+
         self.stand_mean_transform_ = np.delete(self.stand_mean_,
                                                range(self.stand_mean_.shape[1] - self.info_dict_transform_[
                                                    "n_sample"]), axis=1)
-
+        print('ok')
         s_data = ((X[:, columns_features].T - self.stand_mean_transform_) / np.dot(np.sqrt(self.var_pooled_),
                                                                                    np.ones(
                                                                                        (1, self.info_dict_transform_[
                                                                                            "n_sample"]))))
+        print("s_data", s_data.shape)
+        print("design", design.shape)
         # adjust data
         bayes_data = adjust_data_final(s_data=s_data, design=design, gamma_star=self.gamma_star_,
-                                       delta_star=self.delta_star_, stand_mean=self.stand_mean_,
+                                       delta_star=self.delta_star_, stand_mean=self.stand_mean_transform_,
                                        var_pooled=self.var_pooled_, info_dict=self.info_dict_transform_,
                                        dat=X[:, columns_features].T).T
-
+        print("bayes_data", bayes_data.shape)
         X[:, columns_features] = bayes_data
+        print("X", X.shape)
 
         return X
 
-    def _check_data(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[List, List, List, List, List]:
+    def _check_data(self, X: Union[np.ndarray, pd.DataFrame], check_single_covariate: bool = True) -> Tuple[List, List,
+                                                                                                            List, List,
+                                                                                                            List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the Combat()
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
+        :param check_single_covariate: check single covariate
         :return: idx of: columns_features, columns_discrete_covariates,
                          columns_continuous_covariates, columns_sites, other_columns
         """
@@ -338,7 +358,8 @@ class Combat(BaseEstimator, TransformerMixin):
                                  return_counts=True)
         other_columns = unq[unq_cnt == 1]
 
-        _check_single_covariate_sample(X, self.sites)
+        if check_single_covariate:
+            _check_single_covariate_sample(X, self.sites)
         _check_nans(X)
 
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns \
@@ -350,7 +371,7 @@ class Combat(BaseEstimator, TransformerMixin):
         return columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns
 
 
-class RadCombat(Combat):
+class AutoCombat(Combat):
     """
     Harmonize/normalize features using Combat's [1] parametric empirical Bayes framework.
 
@@ -370,6 +391,12 @@ class RadCombat(Combat):
     features : Target features to be harmonized.
 
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
+
+    sites: Target variable for harmonization problems (e.g. acquisition sites or scanner).
+           This argument is Optional. If this argument is provided will run traditional ComBat.
+           In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
+            continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
+           are unused.
 
     size_min: Constraint of the minimum size of site for clustering.
 
@@ -426,15 +453,15 @@ class RadCombat(Combat):
     >>> {"features_1": 1.43, "site_features_0": 1.09, "site_features_1": 1},
     >>> {"features_1": 0.85, "site_features_0": 2.3, "site_features_1": 0}])
 
-    >>> rad_combat = RadCombat(features=["features_1"], sites_features=["site_features_0", "site_features_1"],
+    >>> auto_combat = AutoCombat(features=["features_1"], sites_features=["site_features_0", "site_features_1"],
     >>> continuous_cluster_features=["site_features_0", "site_features_1"])
-    >>> print(rad_combat.fit(data))
+    >>> print(auto_combat.fit(data))
     Combat(continuous_covariates=[], discrete_covariates=[],
        features=['features_1', 'features_2'], ref_site=1, sites=['sites'])
-    >>> print(rad_combat.gamma_star_)
+    >>> print(auto_combat.gamma_star_)
     [[-11.85476756  27.30493785]
     [  0.           0.        ]]
-    >>> print(rad_combat.transform(data))
+    >>> print(auto_combat.transform(data))
     [[1.40593957 1.01395564 0.        ]
     [1.35       1.01       1.        ]
     [1.43       1.09       1.        ]
@@ -448,7 +475,8 @@ class RadCombat(Combat):
 
     def __init__(self,
                  features: Union[List[str], List[int], str, int],
-                 sites_features: Union[List[str], List[int], str, int],
+                 sites_features: Union[List[str], List[int], str, int] = None,
+                 sites: Optional[Union[str, int]] = None,
                  size_min: int = 10,
                  method: str = "silhouette",
                  use_ref_site: bool = False,
@@ -464,12 +492,19 @@ class RadCombat(Combat):
                  mean_only: bool = False,
                  random_state: Union[int, None] = 123,
                  copy: bool = True) -> None:
-        super().__init__(features=features, sites=None, discrete_covariates=discrete_combat_covariates,
-                         continuous_covariates=continuous_combat_covariates, empirical_bayes=empirical_bayes,
-                         parametric=parametric, mean_only=mean_only)
+        super().__init__(features=features,
+                         sites=sites,
+                         discrete_covariates=discrete_combat_covariates,
+                         continuous_covariates=continuous_combat_covariates,
+                         empirical_bayes=empirical_bayes,
+                         parametric=parametric,
+                         mean_only=mean_only)
 
-        assert 0 < threshold_missing_sites_features < 100, ValueError("threshold_missing_sites_features need to be "
-                                                                      "comprise between 0 and 100")
+        if not 0 < threshold_missing_sites_features < 100:
+            raise ValueError("threshold_missing_sites_features need to be comprise between 0 and 100")
+
+        if (sites_features is None and sites is None) or (sites_features is not None and sites is not None):
+            raise ValueError("one of sites_features or sites must be provided. If sites will run traditional ComBat")
 
         self.features = features
         self.sites_features = sites_features
@@ -489,9 +524,9 @@ class RadCombat(Combat):
         self.random_state = random_state
         self.copy = copy
 
-    def reset(self) -> None:
+    def __reset(self) -> None:
         """
-        Reset internal data-dependent state of the RadCombat fit, if necessary.
+        Reset internal data-dependent state of the AutoCombat fit, if necessary.
         __init__ parameters are not touched.
         """
 
@@ -499,7 +534,7 @@ class RadCombat(Combat):
             del self.cls_
             del self.info_clustering_
 
-    def fit(self, X: Union[np.ndarray, pd.DataFrame], *_: Optional[Union[np.ndarray, pd.DataFrame]]) -> "RadCombat":
+    def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
         """
         Compute sites, ref_site using clustering. Then compute the stand mean, var pooled, gamma star, delta star
         to be used for later adjusted data from Combat.
@@ -509,7 +544,7 @@ class RadCombat(Combat):
         X : array-like or DataFrame of shape (n_samples, n_features).
             Requires the columns needed by the harmonization().
             The data used to find adjustments.
-        *_ : y in scikit learn: None
+        *y : y in scikit learn: None
             Ignored.
 
         Returns
@@ -517,38 +552,40 @@ class RadCombat(Combat):
         self : object
             Fitted harmonization estimator.
         """
-        self.reset()
+        self.__reset()
 
-        clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
-        columns_continuous_cluster_features = self._check_data_cluster(X)
+        if self.sites_features is not None:
 
-        clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
+            clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
+            columns_continuous_cluster_features = self._check_data_cluster(X)
 
-        self.cls_, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, _, _ = optimal_clustering(
-            X=clustering_data,
-            size_min=self.size_min,
-            method=self.method)
+            clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
 
-        self.info_clustering_ = {
-            'cluster_nb': cluster_nb,
-            'labels': labels,
-            'ref_label': ref_label,
-            'wicss_clusters': wicss_clusters,
-            'best_wicss_cluster': best_wicss_cluster,
-        }
+            self.cls_, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, _, _ = optimal_clustering(
+                X=clustering_data,
+                size_min=self.size_min,
+                method=self.method)
 
-        if cluster_nb == 1:
-            raise ValueError("Combat can not run. "
-                             "Only one acquisition site found from sites features. Are the data really different or "
-                             "from different acquisition site?")
+            self.info_clustering_ = {
+                'cluster_nb': cluster_nb,
+                'labels': labels,
+                'ref_label': ref_label,
+                'wicss_clusters': wicss_clusters,
+                'best_wicss_cluster': best_wicss_cluster,
+            }
 
-        # add sites columns
-        X = self._add_sites(X, labels)
+            if cluster_nb == 1:
+                raise ValueError("Combat can not run. "
+                                 "Only one acquisition site found from sites features. Are the data really different or "
+                                 "from different acquisition site?")
 
-        if self.use_ref_site:
-            self.ref_site = ref_label
+            # add sites columns
+            X = self._add_sites(X, labels)
 
-        super().fit(X, *_)
+            if self.use_ref_site:
+                self.ref_site = ref_label
+
+        super().fit(X, *y)
 
         return self
 
@@ -568,22 +605,24 @@ class RadCombat(Combat):
         """
         check_is_fitted(self)
 
-        clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
-        columns_continuous_cluster_features = self._check_data_cluster(X)
+        if self.sites_features is not None:
+            clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
+            columns_continuous_cluster_features = self._check_data_cluster(X)
 
-        clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
+            clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
 
-        # get labels for sites
-        labels = self.cls_.predict(clustering_data)
+            # get labels for sites
+            labels = self.cls_.predict(clustering_data)
 
-        # add sites columns
-        X = self._add_sites(X, labels)
+            # add sites columns
+            X = self._add_sites(X, labels)
 
         X = super().transform(X)
 
-        # drop added sites columns
-        if self.drop_site_columns:
-            X = X[:, :-1]
+        if self.sites_features is not None:
+            # drop added sites columns
+            if self.drop_site_columns:
+                X = X[:, :-1]
 
         return X
 
@@ -595,7 +634,8 @@ class RadCombat(Combat):
         :return: idx of: columns_clustering_features
         """
 
-        assert self.sites_features, ValueError("sites_features is empty")
+        if not self.sites_features:
+            raise ValueError("sites_features is empty")
 
         self.sites_features, self.discrete_cluster_features, self.continuous_cluster_features = map(
             lambda x: [x] if isinstance(x, (str, int)) else x if x is not None else [],
@@ -676,3 +716,169 @@ class RadCombat(Combat):
         self.sites = sites
 
         return X
+
+
+class ImageCombat(AutoCombat):
+
+    def __init__(self, image_path: Union[str, int],
+                 sites_features: Union[List[str], List[int], str, int] = None,
+                 sites: Union[str, int] = None,
+                 save_path_fit: str = 'fit_data',
+                 save_path_transform: str = 'transform_data',
+                 size_min: int = 10, method: str = "silhouette",
+                 use_ref_site: bool = False,
+                 scaler_clustering=StandardScaler(),
+                 discrete_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
+                 continuous_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
+                 threshold_missing_sites_features=25,
+                 drop_site_columns: bool = True,
+                 discrete_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
+                 continuous_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
+                 empirical_bayes: bool = True,
+                 parametric: bool = True, mean_only: bool = False,
+                 random_state: Union[int, None] = 123,
+                 flattened_dtype: Optional[np.dtype] = np.float16,
+                 output_dtype: Optional[np.dtype] = np.float32,
+                 copy: bool = True) -> None:
+        super().__init__(features=[],
+                         sites_features=sites_features,
+                         sites=sites,
+                         size_min=size_min,
+                         method=method,
+                         use_ref_site=use_ref_site,
+                         scaler_clustering=scaler_clustering,
+                         discrete_cluster_features=discrete_cluster_features,
+                         continuous_cluster_features=continuous_cluster_features,
+                         threshold_missing_sites_features=threshold_missing_sites_features,
+                         drop_site_columns=drop_site_columns,
+                         discrete_combat_covariates=discrete_combat_covariates,
+                         continuous_combat_covariates=continuous_combat_covariates,
+                         empirical_bayes=empirical_bayes,
+                         parametric=parametric,
+                         mean_only=mean_only,
+                         random_state=random_state,
+                         copy=copy)
+
+        self.image_path = image_path
+        self.save_path_fit = save_path_fit
+        self.save_path_transform = save_path_transform
+        self.flattened_dtype = flattened_dtype
+        self.output_dtype = output_dtype
+
+        # For sequential transform
+        self.sequential_transform = True
+
+    def __reset(self) -> None:
+        """
+        Reset internal data-dependent state of the ImageCombat fit, if necessary.
+        __init__ parameters are not touched.
+        """
+
+        if hasattr(self, 'mask_', ):
+            del self.mask_
+            del self.flattened_array_
+
+    def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "ImageCombat":
+
+        _, list_image_path = self._check_image_path(X)
+
+        # create common brain mask
+        self.mask_, _ = _compute_mask_files(input_path=list_image_path,
+                                            output_path=os.path.join(self.save_path_fit, "common_mask.nii.gz"),
+                                            return_mean=False)
+
+        # flatten nifti files
+        self.flattened_array_ = flatten_nifti_files(input_path=list_image_path, mask=self.mask_,
+                                                    output_flattened_array_path=os.path.join(self.save_path_fit,
+                                                                                             "flattened_array"),
+                                                    dtype=self.flattened_dtype, save=True, compress_save=True)
+
+        X, self.features = self._add_voxels_as_features(X.copy(deep=True), self.flattened_array_)
+
+        # run AutoCombat fit
+        super().fit(X, *y)
+
+    def transform(self, X: Union[np.ndarray, pd.DataFrame]) -> None:
+        """
+        Scale image according to combat estimator and save it.
+
+        Parameters
+        ----------
+        X : array-like or DataFrame of shape (n_samples, n_features). Requires the columns needed by the ImageCombat().
+            Input data that will be transformed.
+
+        Returns
+        -------
+            None, save transformed image
+        """
+        check_is_fitted(self)
+
+        _, list_image_path = self._check_image_path(X)
+
+        logical_mask = self.mask_ == 1  # force the mask to be logical type
+        n_voxels_flattened = np.sum(logical_mask)
+
+        # to avoid OOM, apply sequentially the transform for image path
+        for i, image_path in enumerate(tqdm(list_image_path, desc="Transform image")):
+            print('second loop')
+            to_convert = X.loc[[i]] if isinstance(X, pd.DataFrame) else X[[i]]
+            print('to conv', to_convert)
+            print('second loop deb')
+            flattened_array = np.zeros((1, n_voxels_flattened)).astype(self.flattened_dtype)
+            image_arr, header = load_nifty_volume_as_array(image_path)
+            flattened_array[0, :] = image_arr[logical_mask]
+            print('second loop deb1')
+            print("CHECK", np.isnan(np.min(flattened_array)))
+            to_convert, self.features = self._add_voxels_as_features(to_convert.copy(deep=self.copy), flattened_array)
+            print(to_convert)
+            # run AutoCombat transform
+            adjusted_array = super().transform(to_convert)
+            adjusted_array = adjusted_array[:, self.features]
+            print("adjusted_array AFTE FIT", adjusted_array.shape)
+
+            nifti_out = logical_mask.copy().astype(self.output_dtype)
+            nifti_out[logical_mask] = adjusted_array[0, :]
+            save_to_nii(im=nifti_out, header=header, output_dir=self.save_path_transform,
+                        filename=os.path.basename(image_path))
+
+    def _check_image_path(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[List, List]:
+
+        self.image_path = [self.image_path] if isinstance(self.image_path, (str, int)) else self.image_path
+
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X.copy())
+
+        column_image_path = _check_exist_vars(X, self.image_path).tolist()
+
+        if X[self.image_path[0]].isnull().values.any():
+            raise ValueError("An image path is missing in rows")
+
+        # check nii file exit
+        X[self.image_path[0]].apply(lambda x: check_is_nii_exist(x))
+
+        list_image_path = X[self.image_path[0]].to_list()
+
+        return column_image_path, list_image_path
+
+    def _add_voxels_as_features(self, X: Union[np.ndarray, pd.DataFrame], flattened_array: np.ndarray):
+        """
+        Add voxels as features and drop the image_path columns
+        :param X: Initial input of ImageCombat
+        :param flattened_array: flattened array
+        :return: X concatenate with the flattened array
+        """
+        features_columns = []
+        if isinstance(X, pd.DataFrame):
+            X.drop(self.image_path, axis=1, inplace=True)
+            X = pd.concat([X.reset_index(drop=True), pd.DataFrame(flattened_array)], axis=1)
+            features_columns = list(range(flattened_array.shape[1]))
+            if (np.unique(X.columns.to_list(), return_counts=True)[1] > 1).any():
+                raise ValueError(f"There is a column in the dataframe with the name in the range: "
+                                 f"{features_columns[0]} ... {features_columns[-1]} ")
+        elif isinstance(X, np.ndarray):
+            X = np.delete(X, self.features[0], axis=1)
+            init_end_columns = X.shape[1]
+            X = np.c_[X, flattened_array]
+            features_columns = list(range(init_end_columns, X.shape[1]))
+
+        return X, features_columns

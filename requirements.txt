@@ -16,3 +16,4 @@ matplotlib>=3.3.3
 neurocombat>=0.2.7
 
 git+git://github.com/nipy/nipy.git
+tqdm~=4.54.1
