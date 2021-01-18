@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
+Created on: Jan 14, 2020
+"""
 import os
 import pickle
 import warnings

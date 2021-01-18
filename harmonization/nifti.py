@@ -1,38 +1,18 @@
-# http://nipy.org/nipy/api/generated/nipy.labs.mask.html
-#
-# nipy.labs.mask.intersect_masks(input_masks, output_filename=None, threshold=0.5, cc=True)
-#
-# Given
-# a
-# list
-# of
-# input
-# mask
-# images, generate
-# the
-# output
-# image
-# which is the
-# the
-# threshold - level
-# intersection
-# of
-# the
-# inputs
+# -*- coding: utf-8 -*-
+"""
+Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
+Created on: Jan 14, 2020
+"""
 import os
 import re
 from typing import List, Tuple, Union, Optional, Callable
 
 import numpy as np
+from nipy.labs.mask import compute_mask_files
 from tqdm import tqdm
 
 from harmonization.utils import load_nifty_volume_as_array
 from harmonization.utils import mat_to_bytes
-
-list_file = [
-    "/media/acarre/Data/data_stock/BraTS/BraTS2020_Training/BraTS20_Training_001/BraTS20_Training_001_t1.nii.gz",
-    "/media/acarre/Data/data_stock/BraTS/BraTS2020_Training/BraTS20_Training_002/BraTS20_Training_002_t1.nii.gz"]
-from nipy.labs.mask import compute_mask_files
 
 
 def _compute_mask_files(input_path: List[str],
