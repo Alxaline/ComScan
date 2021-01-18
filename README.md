@@ -34,4 +34,8 @@ cd ComScan
 pip install -e .
 ```
 
+### Disclaimer
+Based on:
+[ComBatHarmonization](https://github.com/Jfortin1/ComBatHarmonization)
+
 
