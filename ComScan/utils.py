@@ -14,7 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from umap import UMAP
 
-from ComScan.neurocombat import check_exist_vars
+from .neurocombat import check_exist_vars
 
 
 def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarray]:
