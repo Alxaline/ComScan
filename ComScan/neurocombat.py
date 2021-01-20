@@ -17,9 +17,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
 from tqdm import tqdm
 
-from harmonization.clustering import optimal_clustering
-from harmonization.nifti import _compute_mask_files, flatten_nifti_files
-from harmonization.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
+from ComScan.clustering import optimal_clustering
+from ComScan.nifti import _compute_mask_files, flatten_nifti_files
+from ComScan.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
     load_nifty_volume_as_array, save_to_nii
 
 
@@ -49,7 +49,7 @@ def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
     """
     for _var in _vars:
         if 1 in df[_var].value_counts().tolist():
-            raise ValueError(f"Combat harmonization requires more than one sample. "
+            raise ValueError(f"Combat ComScan requires more than one sample. "
                              f"The following covariate contain a unique sample: {_var} ")
 
 
@@ -76,7 +76,7 @@ class Combat(BaseEstimator, TransformerMixin):
     ----------
     features : Target features to be harmonized
 
-    sites : Target variable for harmonization problems (e.g. acquisition sites or scanner).
+    sites : Target variable for ComScan problems (e.g. acquisition sites or scanner).
 
     discrete_covariates : Target covariates which are categorical (e.g. male or female).
 
@@ -431,9 +431,9 @@ class AutoCombat(Combat):
 
     Combat need to have well-known acquisition sites or scanner to harmonize features.
     It is sometimes difficult to define an imaging acquisition site if on two sites imaging parameters
-    can be really similar. harmonization gives the possibility to automatically determine the number of sites
+    can be really similar. ComScan gives the possibility to automatically determine the number of sites
     and their association based on imaging features (e.g. dicom tags) by clustering.
-    Thus harmonization can be used on data not seen during training because it can predict which imager best matches
+    Thus ComScan can be used on data not seen during training because it can predict which imager best matches
     the one it has seen during training.
 
 
@@ -446,7 +446,7 @@ class AutoCombat(Combat):
 
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
 
-    sites: Target variable for harmonization problems (e.g. acquisition sites or scanner).
+    sites: Target variable for ComScan problems (e.g. acquisition sites or scanner).
            This argument is Optional. If this argument is provided will run traditional ComBat.
            In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
             continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
@@ -589,7 +589,7 @@ class AutoCombat(Combat):
         Parameters
         ----------
         X : array-like or DataFrame of shape (n_samples, n_features).
-            Requires the columns needed by the harmonization().
+            Requires the columns needed by the ComScan().
             The data used to find adjustments.
         *y : y in scikit learn: None
             Ignored.
@@ -597,7 +597,7 @@ class AutoCombat(Combat):
         Returns
         -------
         self : object
-            Fitted harmonization estimator.
+            Fitted ComScan estimator.
         """
         self.__reset()
 
@@ -771,7 +771,7 @@ class ImageCombat(AutoCombat):
 
     ImageCombat allow the possibility to Harmonize/normalize a set of NIFTI images.
     All images must have the same dimensions and orientation. A common mask is created based on an heuristic
-    proposed by T.Nichols. Images are then vectorizing for harmonization.
+    proposed by T.Nichols. Images are then vectorizing for ComScan.
     ImageCombat allows the possibily to use Combat (well-defined site) or AutoCombat (clustering for sites finding)
 
     [1] Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
@@ -783,7 +783,7 @@ class ImageCombat(AutoCombat):
 
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
 
-    sites: Target variable for harmonization problems (e.g. acquisition sites or scanner).
+    sites: Target variable for ComScan problems (e.g. acquisition sites or scanner).
            This argument is Optional. If this argument is provided will run traditional ComBat.
            In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
             continuous_cluster_features, threshold_missing_sites_features, drop_site_columns

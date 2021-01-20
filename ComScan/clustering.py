@@ -18,7 +18,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
                                max_iter: int = 10, random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, np.ndarray, np.ndarray, np.float, np.ndarray]:
     """
-    K-Means harmonization with minimum and maximum cluster size constraints with the possibility of missing values.
+    K-Means ComScan with minimum and maximum cluster size constraints with the possibility of missing values.
     # inspired of https://stackoverflow.com/questions/35611465/python-scikit-learn-clustering-with-missing-data
     :param X: array-like or DataFrame of floats, shape (n_samples, n_features)
         The observations to cluster.
@@ -57,7 +57,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             # do multiple random initializations in parallel
             cls = KMeansConstrained(n_clusters, size_min=size_min, random_state=random_state)
 
-        # perform harmonization on the filled-in data
+        # perform ComScan on the filled-in data
         labels = cls.fit_predict(X_hat)
         centroids = cls.cluster_centers_
 

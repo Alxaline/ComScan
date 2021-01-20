@@ -11,8 +11,8 @@ import numpy as np
 from nipy.labs.mask import compute_mask_files
 from tqdm import tqdm
 
-from harmonization.utils import load_nifty_volume_as_array
-from harmonization.utils import mat_to_bytes
+from ComScan.utils import load_nifty_volume_as_array
+from ComScan.utils import mat_to_bytes
 
 
 def _compute_mask_files(input_path: List[str],

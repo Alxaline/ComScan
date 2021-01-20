@@ -15,7 +15,7 @@ with open('LICENSE') as f:
 args = dict(
     name='ComScan',
     version='0.0.1',
-    description="ComBat, AutoCombat and ImageCombat harmonization scikit-learn compatible",
+    description="ComBat, AutoCombat and ImageCombat ComScan scikit-learn compatible",
     long_description=readme,
     author='Alexandre CARRE',
     author_email='alexandre.carre@gustaveroussy.fr',
@@ -23,7 +23,7 @@ args = dict(
     license=license,
     packages=find_packages(exclude=['docs']),
     python_requires='>=3.6',
-    keywords="Perform radiomics harmonization based on ComBat scikit-learn compatible.",
+    keywords="Perform radiomics ComScan based on ComBat scikit-learn compatible.",
 )
 
 setup(install_requires=['simpleitk',
