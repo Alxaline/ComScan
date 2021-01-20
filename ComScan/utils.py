@@ -14,7 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from umap import UMAP
 
-from ComScan.neurocombat import _check_exist_vars
+from ComScan.neurocombat import check_exist_vars
 
 
 def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarray]:
@@ -52,7 +52,7 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
         df: new dataframe where columns are one hot encoded
     """
 
-    _check_exist_vars(df, columns)
+    check_exist_vars(df, columns)
 
     for col in columns:
         dummies = pd.get_dummies(df[col], prefix=col, drop_first=False)
@@ -72,7 +72,7 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     :return df: new dataframe where columns are scaler encoded
     """
 
-    _check_exist_vars(df, columns)
+    check_exist_vars(df, columns)
 
     le = scaler
     df[columns] = le.fit_transform(df[columns])

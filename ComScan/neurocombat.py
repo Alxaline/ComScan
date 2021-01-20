@@ -23,7 +23,7 @@ from ComScan.utils import get_column_index, one_hot_encoder, scaler_encoder, che
     load_nifty_volume_as_array, save_to_nii
 
 
-def _check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
+def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
     """
     Check that a list of columns name exist in a DataFrame.
     :param df: a DataFrame
@@ -335,16 +335,16 @@ class Combat(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X.copy())
 
-        columns_features = _check_exist_vars(X, self.features)
-        columns_sites = _check_exist_vars(X, self.sites)
+        columns_features = check_exist_vars(X, self.features)
+        columns_sites = check_exist_vars(X, self.sites)
         columns_used = (columns_features, columns_sites)
         columns_discrete_covariates, columns_continuous_covariates = [], []
         if self.discrete_covariates:
-            columns_discrete_covariates = _check_exist_vars(X, self.discrete_covariates)
+            columns_discrete_covariates = check_exist_vars(X, self.discrete_covariates)
             _check_single_covariate_sample(X, self.discrete_covariates)
             columns_used += (columns_discrete_covariates,)
         if self.continuous_covariates:
-            columns_continuous_covariates = _check_exist_vars(X, self.continuous_covariates)
+            columns_continuous_covariates = check_exist_vars(X, self.continuous_covariates)
             _check_single_covariate_sample(X, self.continuous_covariates)
             columns_used += (columns_continuous_covariates,)
 
@@ -691,15 +691,15 @@ class AutoCombat(Combat):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X.copy())
 
-        columns_clustering_features = _check_exist_vars(X, self.sites_features)
+        columns_clustering_features = check_exist_vars(X, self.sites_features)
 
         columns_used = (columns_clustering_features,)
         columns_discrete_cluster_features, columns_continuous_cluster_features = [], []
         if self.discrete_cluster_features:
-            columns_discrete_cluster_features = _check_exist_vars(X, self.discrete_cluster_features)
+            columns_discrete_cluster_features = check_exist_vars(X, self.discrete_cluster_features)
             columns_used += (columns_discrete_cluster_features,)
         if self.continuous_cluster_features:
-            columns_continuous_cluster_features = _check_exist_vars(X, self.continuous_cluster_features)
+            columns_continuous_cluster_features = check_exist_vars(X, self.continuous_cluster_features)
             columns_used += (columns_continuous_cluster_features,)
 
         unq, unq_cnt = np.unique(np.concatenate((columns_clustering_features, np.concatenate(columns_used))),
@@ -965,7 +965,7 @@ class ImageCombat(AutoCombat):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X.copy())
 
-        column_image_path = _check_exist_vars(X, self.image_path).tolist()
+        column_image_path = check_exist_vars(X, self.image_path).tolist()
 
         if X[self.image_path[0]].isnull().values.any():
             raise ValueError("An image path is missing in rows")
