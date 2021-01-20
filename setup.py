@@ -36,5 +36,5 @@ setup(install_requires=['simpleitk',
                         'tqdm',
                         'nipy @ git+https://github.com/nipy/nipy.git#egg=nipy',
                         'umap',
-                        'k-means-constrained~'
+                        'k-means-constrained'
                         ], **args)
