@@ -10,9 +10,9 @@ from typing import Tuple, Union, Sequence
 import SimpleITK as sitk
 import numpy as np
 import pandas as pd
+import umap
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
-import umap
 
 
 def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
@@ -95,7 +95,8 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     return df
 
 
-def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123):
+def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123,
+         n_jobs: Union[int, None] = -1):
     """
     t-distributed Stochastic Neighbor Embedding.
 
@@ -112,14 +113,21 @@ def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_sta
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+    :param n_jobs, default=-1
+        The number of parallel jobs to run for neighbors search. This parameter
+        has no impact when ``metric="precomputed"`` or
+        (``metric="euclidean"`` and ``method="exact"``).
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors.
     :return: array-like with projections
     """
-    tsne = TSNE(n_components=n_components, random_state=random_state)
+    tsne = TSNE(n_components=n_components, random_state=random_state, n_jobs=n_jobs)
     projections = tsne.fit_transform(df[columns])
     return projections
 
 
-def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123):
+def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123,
+          n_jobs: Union[int, None] = -1):
     """
     Just like t-SNE, UMAP is a dimensionality reduction specifically designed for visualizing complex data in
     low dimensions (2D or 3D). As the number of data points increase, UMAP becomes more time efficient compared to TSNE.
@@ -130,9 +138,15 @@ def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_st
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+    :param n_jobs, default=-1
+        The number of parallel jobs to run for neighbors search. This parameter
+        has no impact when ``metric="precomputed"`` or
+        (``metric="euclidean"`` and ``method="exact"``).
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors.
     :return: array-like with projections
     """
-    _umap = umap.UMAP(n_components=n_components, init='random', random_state=random_state)
+    _umap = umap.UMAP(n_components=n_components, init='random', random_state=random_state, n_jobs=n_jobs)
     projections = _umap.fit_transform(df[columns])
     return projections
 
