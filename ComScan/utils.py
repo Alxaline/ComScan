@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
-from umap import UMAP
+import umap
 
 
 def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
@@ -132,8 +132,8 @@ def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_st
         by `np.random`.
     :return: array-like with projections
     """
-    umap = UMAP(n_components=n_components, init='random', random_state=random_state)
-    projections = umap.fit_transform(df[columns])
+    _umap = umap.UMAP(n_components=n_components, init='random', random_state=random_state)
+    projections = _umap.fit_transform(df[columns])
     return projections
 
 
