@@ -14,7 +14,22 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from umap import UMAP
 
-from .neurocombat import check_exist_vars
+
+def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
+    """
+    Check that a list of columns name exist in a DataFrame.
+    :param df: a DataFrame
+    :param _vars: List of columns name to check
+    :return index of columns name
+    :raise Value error if missing features
+    """
+    column_index = get_column_index(df, _vars)
+    is_feature_present = column_index != -1
+    if not isinstance(_vars, np.ndarray):
+        _vars = np.array(_vars)
+    if not is_feature_present.all():
+        raise ValueError(f"Missing features: {', '.join(_vars[~is_feature_present].astype(str))}")
+    return column_index
 
 
 def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarray]:

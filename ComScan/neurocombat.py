@@ -20,24 +20,7 @@ from tqdm import tqdm
 from ComScan.clustering import optimal_clustering
 from ComScan.nifti import _compute_mask_files, flatten_nifti_files
 from ComScan.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
-    load_nifty_volume_as_array, save_to_nii
-
-
-def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
-    """
-    Check that a list of columns name exist in a DataFrame.
-    :param df: a DataFrame
-    :param _vars: List of columns name to check
-    :return index of columns name
-    :raise Value error if missing features
-    """
-    column_index = get_column_index(df, _vars)
-    is_feature_present = column_index != -1
-    if not isinstance(_vars, np.ndarray):
-        _vars = np.array(_vars)
-    if not is_feature_present.all():
-        raise ValueError(f"Missing features: {', '.join(_vars[~is_feature_present].astype(str))}")
-    return column_index
+    load_nifty_volume_as_array, save_to_nii, check_exist_vars
 
 
 def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
