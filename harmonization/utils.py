@@ -4,12 +4,15 @@ Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
 Created on: Jan 14, 2021
 """
 import os
-from typing import Tuple, List, Union, Sequence
+from typing import List
+from typing import Tuple, Union, Sequence
 
 import SimpleITK as sitk
 import numpy as np
 import pandas as pd
+from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
+from umap import UMAP
 
 from harmonization.neurocombat import _check_exist_vars
 
@@ -75,6 +78,48 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     df[columns] = le.fit_transform(df[columns])
 
     return df
+
+
+def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123):
+    """
+    t-distributed Stochastic Neighbor Embedding.
+
+    t-SNE [1] is a tool to visualize high-dimensional data. It converts
+    similarities between data points to joint probabilities and tries
+    to minimize the Kullback-Leibler divergence between the joint
+    probabilities of the low-dimensional embedding and the
+    high-dimensional data. t-SNE has a cost function that is not convex,
+    i.e. with different initializations we can get different results.
+    :param df: input dataframe
+    :param columns: List of columns to use
+    :param n_components: Dimension of the embedded space. Default 2.
+    :param random_state: int, RandomState instance or None, optional, default: 123
+        If int, random_state is the seed used by the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+    :return: array-like with projections
+    """
+    tsne = TSNE(n_components=n_components, random_state=random_state)
+    projections = tsne.fit_transform(df[columns])
+    return projections
+
+
+def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123):
+    """
+    Just like t-SNE, UMAP is a dimensionality reduction specifically designed for visualizing complex data in
+    low dimensions (2D or 3D). As the number of data points increase, UMAP becomes more time efficient compared to TSNE.
+    :param df: input dataframe
+    :param columns: List of columns to use
+    :param n_components: Dimension of the embedded space. Default 2.
+    :param random_state: int, RandomState instance or None, optional, default: 123
+        If int, random_state is the seed used by the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+    :return: array-like with projections
+    """
+    umap = UMAP(n_components=n_components, init='random', random_state=random_state)
+    projections = umap.fit_transform(df[columns])
+    return projections
 
 
 def split_filename(file_name: str) -> Tuple[str, str, str]:

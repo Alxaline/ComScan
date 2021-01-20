@@ -35,4 +35,5 @@ setup(install_requires=['simpleitk',
                         'neurocombat',
                         'tqdm',
                         'nipy @ git+https://github.com/nipy/nipy.git#egg=nipy',
+                        'umap'
                         ], **args)

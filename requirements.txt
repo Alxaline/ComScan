@@ -7,3 +7,4 @@ scikit-learn>=0.24.0
 neurocombat>=0.2.7
 git+git://github.com/nipy/nipy.git
 tqdm~=4.54.1
+umap>=0.1.1
