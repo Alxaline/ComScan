@@ -56,18 +56,23 @@ def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object
     return cat_var_df
 
 
-def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True) -> pd.DataFrame:
+def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True,
+                    inplace: bool = False) -> pd.DataFrame:
     """
     Encoding categorical feature in the dataframe, allow possibility to keep NaN.
     The categorical feature index and name are from cat_var function. These columns need to be "object" dtypes.
     :param df: input dataframe
     :param columns: List of columns to encode
     :param drop_column: Set to True to drop the original column after encoding. Default to True.
+    :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
     :return:
         df: new dataframe where columns are one hot encoded
     """
 
     check_exist_vars(df, columns)
+
+    if not inplace:
+        df = df.copy(deep=True)
 
     for col in columns:
         dummies = pd.get_dummies(df[col], prefix=col, drop_first=False)
@@ -78,17 +83,22 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
     return df
 
 
-def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()) -> pd.DataFrame:
+def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler(),
+                   inplace: bool = False) -> pd.DataFrame:
     """
     Apply sklearn scaler to columns.
 
     :param df: input dataframe
     :param columns: List of columns to encode
     :param scaler: scaler object from sklearn
+    :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
     :return df: new dataframe where columns are scaler encoded
     """
 
     check_exist_vars(df, columns)
+
+    if not inplace:
+        df = df.copy(deep=True)
 
     le = scaler
     for col in columns:
