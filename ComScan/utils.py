@@ -81,6 +81,7 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
 def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()) -> pd.DataFrame:
     """
     Apply sklearn scaler to columns.
+
     :param df: input dataframe
     :param columns: List of columns to encode
     :param scaler: scaler object from sklearn
@@ -90,8 +91,8 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     check_exist_vars(df, columns)
 
     le = scaler
-    df[columns] = le.fit_transform(df[columns])
-
+    for col in columns:
+        df[col] = le.fit_transform(df[col])
     return df
 
 
@@ -106,6 +107,7 @@ def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_sta
     probabilities of the low-dimensional embedding and the
     high-dimensional data. t-SNE has a cost function that is not convex,
     i.e. with different initializations we can get different results.
+
     :param df: input dataframe
     :param columns: List of columns to use
     :param n_components: Dimension of the embedded space. Default 2.
@@ -131,6 +133,7 @@ def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_st
     """
     Just like t-SNE, UMAP is a dimensionality reduction specifically designed for visualizing complex data in
     low dimensions (2D or 3D). As the number of data points increase, UMAP becomes more time efficient compared to TSNE.
+
     :param df: input dataframe
     :param columns: List of columns to use
     :param n_components: Dimension of the embedded space. Default 2.
@@ -154,6 +157,7 @@ def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_st
 def split_filename(file_name: str) -> Tuple[str, str, str]:
     """
     Split file_name into folder path name, basename, and extension name.
+
     :param file_name: full path
     :return: path name, basename, extension name
     """
@@ -175,6 +179,7 @@ def split_filename(file_name: str) -> Tuple[str, str, str]:
 def check_is_nii_exist(input_file_path: str) -> str:
     """
     Check if a directory exist.
+
     :param input_file_path: string of the path of the nii or nii.gz.
     :return: string if exist, else raise Error.
     """
@@ -191,6 +196,7 @@ def load_nifty_volume_as_array(input_path_file: str) -> Tuple[np.ndarray, Tuple[
     """
     Load nifty image into numpy array [z,y,x] axis order.
     The output array shape is like [Depth, Height, Width].
+
     :param input_path_file: input path file, should be *.nii or *.nii.gz
     :return: a numpy data array, (with header)
     """
@@ -205,6 +211,7 @@ def save_to_nii(im: np.ndarray, header: (tuple, tuple, tuple), output_dir: str, 
                 gzip: bool = True) -> None:
     """
     Save numpy array to nii.gz format to submit.
+
     :param im: array numpy
     :param header: header metadata (origin, spacing, direction).
     :param output_dir: Output directory.
@@ -233,6 +240,7 @@ def mat_to_bytes(nrows: int, ncols: int, dtype: int = 32, out: str = "GB") -> fl
     """
     # https://gist.github.com/dimalik/f4609661fb83e3b5d22e7550c1776b90
     Calculate the size of a numpy array in bytes.
+
     :param nrows: the number of rows of the matrix.
     :param ncols: the number of columns of the matrix.
     :param dtype: the size of each element in the matrix. Defaults to 32bits.
