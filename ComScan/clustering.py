@@ -151,7 +151,7 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
     # WSS=\sum ^{M}_{i=1}\left( x_{i}-c_{i}\right) ^{2}
 
     # Calculate the distances matrix between all data points and the final centroids.
-    D = cdist(X, centroids, 'euclidean')
+    D = cdist(X_hat, centroids, 'euclidean')
     wicss_clusters = []
     for label in range(0, cluster_nb):
         labels_bool = labels == label
