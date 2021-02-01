@@ -102,7 +102,10 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
 
     le = scaler
     for col in columns:
-        df[col] = le.fit_transform(df[col])
+        try:
+            df[col] = le.fit_transform(df[col])
+        except ValueError:
+            df[col] = le.fit_transform(pd.DataFrame(df[col]))
     return df
 
 
