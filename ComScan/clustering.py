@@ -137,7 +137,6 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
         kn = KneeLocator(K, wcss, curve='convex', direction='decreasing')
         cluster_nb = kn.knee
     elif method == "silhouette":
-        print(sil)
         sil_score_max = max(sil)
         cluster_nb = K[sil.index(sil_score_max)]
 
