@@ -55,6 +55,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             X_hat = umap.UMAP(n_components=n_components).fit_transform(X_hat)
         elif features_reduction.lower() == "pca":
             X_hat = PCA(n_components=n_components).fit_transform(X_hat)
+        missing = ~np.isfinite(X_hat)
 
     cls = None
     prev_labels, labels = np.array([]), np.array([])
