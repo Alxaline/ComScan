@@ -8,9 +8,11 @@ from typing import Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import umap
 from k_means_constrained import KMeansConstrained
 from kneed import KneeLocator
 from scipy.spatial.distance import cdist
+from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 
 
@@ -76,16 +78,21 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
 
 
 def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, method: str = "silhouette",
+                       features_reduction: Optional[str] = None, n_components: int = 2,
                        random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, int, np.ndarray, int, Sequence[np.float], np.float, np.ndarray, np.ndarray]:
     """
     Function to find the optimal clustering using a constrained k means. Two method are available to find the optimal
     number of cluster 'silhouette' and 'elbow'.
+
     :param X: array-like or DataFrame of floats, shape (n_samples, n_features)
         The observations to cluster.
     :param size_min: Constrain the label assignment so that each cluster has a minimum size of size_min.
         If None, no constrains will be applied. default: None
     :param method: Method to find the optimal number of cluster : "elbow" or "silhouette"
+    :param features_reduction: Method for reduction of the embedded space with n_components. Can be pca or umap.
+        Default: None
+    :param n_components: Dimension of the embedded space for features reduction. Default 2.
     :param random_state: int, RandomState instance or None, optional, default: None
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
@@ -103,6 +110,13 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
         X_hat: Copy of X with the missing values filled in.
     """
     assert method in ["elbow", "silhouette"], "method need to be 'elbow' or 'silhouette'"
+
+    if features_reduction is not None:
+        assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
+        if features_reduction.lower() == "umap":
+            X = umap.UMAP(n_components=n_components).fit_transform(X)
+        elif features_reduction.lower() == "pca":
+            X = PCA(n_components=n_components).fit_transform(X)
 
     n_samples = X.shape[0]
     min_cluster = 2 if method == "silhouette" else 1
