@@ -9,11 +9,16 @@ from typing import Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 import umap
-from k_means_constrained import KMeansConstrained
 from kneed import KneeLocator
 from scipy.spatial.distance import cdist
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
+
+with warnings.catch_warnings():
+    # Ignore flood of RuntimeWarning: Explicit initial center position passed: performing only one init
+    # in k-means instead of n_init=10 return_n_iter=True)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    from k_means_constrained import KMeansConstrained
 
 
 def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: int, size_min: Optional[int] = None,
@@ -52,9 +57,9 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     if features_reduction is not None:
         assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
         if features_reduction.lower() == "umap":
-            X_hat = umap.UMAP(n_components=n_components).fit_transform(X_hat)
+            X_hat = umap.UMAP(n_components=n_components, random_state=random_state).fit_transform(X_hat)
         elif features_reduction.lower() == "pca":
-            X_hat = PCA(n_components=n_components).fit_transform(X_hat)
+            X_hat = PCA(n_components=n_components, random_state=random_state).fit_transform(X_hat)
         missing = ~np.isfinite(X_hat)
 
     cls = None
