@@ -17,17 +17,22 @@ from sklearn.metrics import silhouette_score
 
 
 def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: int, size_min: Optional[int] = None,
-                               max_iter: int = 10, random_state: Optional[int] = None) \
+                               max_iter: int = 10, features_reduction: Optional[str] = None, n_components: int = 2,
+                               random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, np.ndarray, np.ndarray, np.float, np.ndarray]:
     """
     K-Means ComScan with minimum and maximum cluster size constraints with the possibility of missing values.
     # inspired of https://stackoverflow.com/questions/35611465/python-scikit-learn-clustering-with-missing-data
+
     :param X: array-like or DataFrame of floats, shape (n_samples, n_features)
         The observations to cluster.
     :param n_clusters: The number of clusters to form as well as the number of centroids to generate.
     :param size_min: Constrain the label assignment so that each cluster has a minimum size of size_min.
         If None, no constrains will be applied. default: None
     :param max_iter: Maximum number of EM iterations to perform. default: 10
+    :param features_reduction: Method for reduction of the embedded space with n_components. Can be pca or umap.
+        Default: None
+    :param n_components: Dimension of the embedded space for features reduction. Default 2.
     :param random_state: int, RandomState instance or None, optional, default: None
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
@@ -44,6 +49,13 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     mu = np.nanmean(X, 0, keepdims=1)
     X_hat = np.where(missing, mu, X)
 
+    if features_reduction is not None:
+        assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
+        if features_reduction.lower() == "umap":
+            X_hat = umap.UMAP(n_components=n_components).fit_transform(X_hat)
+        elif features_reduction.lower() == "pca":
+            X_hat = PCA(n_components=n_components).fit_transform(X_hat)
+
     cls = None
     prev_labels, labels = np.array([]), np.array([])
     prev_centroids, centroids = np.array([]), np.array([])
@@ -59,7 +71,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             # do multiple random initializations in parallel
             cls = KMeansConstrained(n_clusters, size_min=size_min, random_state=random_state)
 
-        # perform ComScan on the filled-in data
+        # perform on the filled-in data
         labels = cls.fit_predict(X_hat)
         centroids = cls.cluster_centers_
 
@@ -111,13 +123,6 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
     """
     assert method in ["elbow", "silhouette"], "method need to be 'elbow' or 'silhouette'"
 
-    if features_reduction is not None:
-        assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
-        if features_reduction.lower() == "umap":
-            X = umap.UMAP(n_components=n_components).fit_transform(X)
-        elif features_reduction.lower() == "pca":
-            X = PCA(n_components=n_components).fit_transform(X)
-
     n_samples = X.shape[0]
     min_cluster = 2 if method == "silhouette" else 1
     max_cluster = n_samples // size_min + 1
@@ -134,9 +139,14 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
     all_cls, all_labels, all_centroids, all_inertia, all_Xhat = [], [], [], [], []
 
     for k in K:
-        cls, labels, centroids, inertia, X_hat = kmeans_constrained_missing(X, n_clusters=k, size_min=size_min,
+        cls, labels, centroids, inertia, X_hat = kmeans_constrained_missing(X,
+                                                                            n_clusters=k,
+                                                                            size_min=size_min,
                                                                             max_iter=10,
+                                                                            features_reduction=features_reduction,
+                                                                            n_components=n_components,
                                                                             random_state=random_state)
+
         all_cls.append(cls), all_labels.append(labels), all_centroids.append(centroids), all_inertia.append(
             inertia), all_Xhat.append(X_hat)
 
