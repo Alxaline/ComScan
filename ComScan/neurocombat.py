@@ -202,7 +202,7 @@ class Combat(BaseEstimator, TransformerMixin):
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
             = _reorder_columns(columns_needed)
 
-        X = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
+        X = self._validate_data(X[:, sum(columns_needed, [])], copy=self.copy, estimator=self)
 
         if self.ref_site is None:
             ref_level = None
@@ -286,7 +286,7 @@ class Combat(BaseEstimator, TransformerMixin):
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
 
-        X = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
+        X = self._validate_data(X[:, sum(columns_needed, [])], copy=self.copy, estimator=self)
 
         (batch_levels, sample_per_batch) = np.unique(X[:, columns_sites], return_counts=True)
 
