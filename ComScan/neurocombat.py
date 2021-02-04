@@ -335,7 +335,7 @@ class Combat(BaseEstimator, TransformerMixin):
         original_X[:, columns_needed[0]] = bayes_data
 
         if columns_df is not None:
-            X = pd.DataFrame(X, columns=columns_df)
+            X = pd.DataFrame(original_X, columns=columns_df)
 
         return X
 
