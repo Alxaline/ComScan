@@ -39,6 +39,7 @@ def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
 def _check_nans(df: pd.DataFrame) -> None:
     """
     Check if NaNs are present in dataframe
+
     :param df: a DataFrame
     :raise: ValueError if NaNs are present
     """
@@ -46,6 +47,24 @@ def _check_nans(df: pd.DataFrame) -> None:
         raise ValueError("NaN values found on data. \n"
                          "Combat can not work with NaN values, maybe drop samples or features columns"
                          " containing these values")
+
+
+def _reorder_columns(all_columns: List[List]):
+    """
+    Reorder a list of list based on the total index
+    :param all_columns: columns is a list of list
+    :return: all_columns with new value as index
+    """
+    new_all_col_list = []
+    i = 0
+    for col in all_columns:
+        col_list = []
+        if col:
+            for _ in col:
+                col_list.append(i)
+                i += 1
+        new_all_col_list.append(col_list)
+    return new_all_col_list
 
 
 class Combat(BaseEstimator, TransformerMixin):
@@ -177,13 +196,13 @@ class Combat(BaseEstimator, TransformerMixin):
         """
         self.__reset()
 
-        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, \
-            other_columns, columns_needed = self._check_data(X)
+        all_columns = self._check_data(X)
+        columns_needed = all_columns[0:4]
 
-        if isinstance(X, pd.DataFrame):
-            X = X.to_numpy()
+        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
+            = _reorder_columns(columns_needed)
 
-        X[:, columns_needed] = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
+        X = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
 
         if self.ref_site is None:
             ref_level = None
@@ -254,15 +273,20 @@ class Combat(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self)
 
-        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, \
-            other_columns, columns_needed = self._check_data(X, check_single_covariate=False)
+        all_columns = self._check_data(X)
+        columns_needed = all_columns[0:4]
+
+        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
+            = _reorder_columns(columns_needed)
+
+        # make a copy of original
+        original_X = X.copy(deep=True)
 
         columns_df = None
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
-            X = X.to_numpy()
 
-        X[:, columns_needed] = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
+        X = self._validate_data(X[:, columns_needed], copy=self.copy, estimator=self)
 
         (batch_levels, sample_per_batch) = np.unique(X[:, columns_sites], return_counts=True)
 
@@ -304,7 +328,7 @@ class Combat(BaseEstimator, TransformerMixin):
                                              batch_info=[list(np.where(X[:, columns_sites] == idx)[0]) for idx in
                                                          self.info_dict_fit_["batch_levels"]]).T
 
-        X[:, columns_features] = bayes_data
+        original_X[:, columns_needed[0]] = bayes_data
 
         if columns_df is not None:
             X = pd.DataFrame(X, columns=columns_df)
@@ -313,7 +337,7 @@ class Combat(BaseEstimator, TransformerMixin):
 
     def _check_data(self, X: Union[np.ndarray, pd.DataFrame], check_single_covariate: bool = True) -> Tuple[List, List,
                                                                                                             List, List,
-                                                                                                            List, List]:
+                                                                                                            List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the Combat()
@@ -361,14 +385,12 @@ class Combat(BaseEstimator, TransformerMixin):
 
         _check_nans(X[self.features + self.discrete_covariates + self.continuous_covariates + self.sites])
 
-        columns_needed = sum(
-            [columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites], [])
-
-        return columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns, columns_needed
+        return columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns
 
     def _adjust_final_data(self, s_data, design, sample_per_batch, n_sample, batch_info):
         """
         Adjust final data
+
         :param s_data: array-like standardized data
         :param design: array-like design matrix
         :param sample_per_batch: number of sample per batch
