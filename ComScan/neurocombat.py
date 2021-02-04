@@ -202,6 +202,9 @@ class Combat(BaseEstimator, TransformerMixin):
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
             = _reorder_columns(columns_needed)
 
+        if isinstance(X, pd.DataFrame):
+            X = X.to_numpy()
+
         X = self._validate_data(X[:, sum(columns_needed, [])], copy=self.copy, estimator=self)
 
         if self.ref_site is None:
@@ -285,6 +288,7 @@ class Combat(BaseEstimator, TransformerMixin):
         columns_df = None
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
+            X = X.to_numpy()
 
         X = self._validate_data(X[:, sum(columns_needed, [])], copy=self.copy, estimator=self)
 
