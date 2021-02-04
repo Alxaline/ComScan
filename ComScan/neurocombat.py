@@ -320,7 +320,7 @@ class Combat(BaseEstimator, TransformerMixin):
         design_batch = np.eye(self.info_dict_fit_["n_batch"])[X[:, columns_sites[0]].astype(int)]
         design = np.concatenate((design_batch, design[:, self.info_dict_transform_["n_batch"]:]), axis=1)
 
-        self.stand_mean_transform_ = np.repeat(self.stand_mean_.stand_mean_[:, [0]],
+        self.stand_mean_transform_ = np.repeat(self.stand_mean_[:, [0]],
                                                self.info_dict_transform_["n_sample"], axis=1)
 
         s_data = ((X[:, columns_features].T - self.stand_mean_transform_) / np.dot(np.sqrt(self.var_pooled_),
