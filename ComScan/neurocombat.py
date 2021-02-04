@@ -22,6 +22,10 @@ from ComScan.nifti import _compute_mask_files, flatten_nifti_files
 from ComScan.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
     load_nifty_volume_as_array, save_to_nii, check_exist_vars
 
+__all__ = [
+    'Combat', 'AutoCombat', 'ImageCombat'
+]
+
 
 def _check_single_covariate_sample(df: pd.DataFrame, _vars: List) -> None:
     """
@@ -199,7 +203,7 @@ class Combat(BaseEstimator, TransformerMixin):
         all_columns = self._check_data(X)
         columns_needed = all_columns[0:4]
 
-        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
+        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites \
             = _reorder_columns(columns_needed)
 
         if isinstance(X, pd.DataFrame):
@@ -279,7 +283,7 @@ class Combat(BaseEstimator, TransformerMixin):
         all_columns = self._check_data(X)
         columns_needed = all_columns[0:4]
 
-        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
+        columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites \
             = _reorder_columns(columns_needed)
 
         columns_df = None
