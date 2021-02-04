@@ -282,13 +282,13 @@ class Combat(BaseEstimator, TransformerMixin):
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites\
             = _reorder_columns(columns_needed)
 
-        # make a copy of original
-        original_X = X.copy(deep=True)
-
         columns_df = None
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
             X = X.to_numpy()
+
+        # make a copy of original
+        original_X = np.copy(X)
 
         X = self._validate_data(X[:, sum(columns_needed, [])], copy=self.copy, estimator=self)
 
