@@ -295,7 +295,7 @@ class Combat(BaseEstimator, TransformerMixin):
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
             if self.return_only_features:
-                columns_df = [columns_df[i] for i in columns_features]
+                columns_df = list(X.columns[columns_features])
             X = X.to_numpy()
 
         # make a copy of original
