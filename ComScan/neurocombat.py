@@ -97,8 +97,11 @@ class Combat(BaseEstimator, TransformerMixin):
     parametric : Performed parametric adjustements.
         Default is True.
 
-    mean_only : Adjust only the mean (no scaling)
+    mean_only : Adjust only the mean (no scaling).
         Default is False.
+
+    return_only_features: Return only features.
+        Default is False
 
     copy : Set to False to perform inplace row normalization and avoid a copy (if the input is already a numpy array).
         Default is True.
@@ -157,6 +160,7 @@ class Combat(BaseEstimator, TransformerMixin):
                  empirical_bayes: bool = True,
                  parametric: bool = True,
                  mean_only: bool = False,
+                 return_only_features: bool = True,
                  copy: bool = True) -> None:
 
         self.features = features
@@ -167,6 +171,7 @@ class Combat(BaseEstimator, TransformerMixin):
         self.empirical_bayes = empirical_bayes
         self.parametric = parametric
         self.mean_only = mean_only
+        self.return_only_features = return_only_features
         self.copy = copy
 
     def __reset(self) -> None:
@@ -289,6 +294,8 @@ class Combat(BaseEstimator, TransformerMixin):
         columns_df = None
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
+            if self.return_only_features:
+                columns_df = [columns_df[i] for i in columns_features]
             X = X.to_numpy()
 
         # make a copy of original
@@ -337,10 +344,13 @@ class Combat(BaseEstimator, TransformerMixin):
 
         original_X[:, columns_needed[0]] = bayes_data
 
-        if columns_df is not None:
-            X = pd.DataFrame(original_X, columns=columns_df)
+        if self.return_only_features:
+            original_X = original_X[:, columns_features]
 
-        return X
+        if columns_df is not None:
+            original_X = pd.DataFrame(original_X, columns=columns_df)
+
+        return original_X
 
     def _check_data(self, X: Union[np.ndarray, pd.DataFrame], check_single_covariate: bool = True) -> Tuple[List, List,
                                                                                                             List, List,
@@ -510,6 +520,9 @@ class AutoCombat(Combat):
     mean_only : Adjust only the mean (no scaling)
         Default is False.
 
+    return_only_features: Return only features.
+        Default is False
+
     random_state: int, RandomState instance or None, optional, default: 123
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
@@ -563,6 +576,7 @@ class AutoCombat(Combat):
                  empirical_bayes: bool = True,
                  parametric: bool = True,
                  mean_only: bool = False,
+                 return_only_features: bool = True,
                  random_state: Union[int, None] = 123,
                  copy: bool = True) -> None:
         super().__init__(features=features,
@@ -594,6 +608,7 @@ class AutoCombat(Combat):
         self.empirical_bayes = empirical_bayes
         self.parametric = parametric
         self.mean_only = mean_only
+        self.return_only_features = return_only_features
         self.random_state = random_state
         self.copy = copy
 
