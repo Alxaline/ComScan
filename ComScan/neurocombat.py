@@ -671,7 +671,8 @@ class AutoCombat(Combat):
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label,\
                 wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
                                                                                         size_min=self.size_min,
-                                                                                        method=self.method)
+                                                                                        method=self.method,
+                                                                                        random_state=self.random_state)
 
             self.info_clustering_ = {
                 'cluster_nb': cluster_nb,
