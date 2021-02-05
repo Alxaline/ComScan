@@ -718,7 +718,7 @@ class AutoCombat(Combat):
 
             # check for NaN for clustering data
             clustering_data.fillna(value=self.X_hat_.mean().to_dict(), inplace=True)
-            print(clustering_data)
+
             if self.features_reduction is not None:
                 clustering_data = self.cls_feature_reduction_.transform(clustering_data)
 
