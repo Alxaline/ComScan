@@ -55,6 +55,8 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     columns_df = []
     if isinstance(X, pd.DataFrame):
         columns_df = list(X.columns)
+        if features_reduction is not None:
+            columns_df = list(map(lambda x: f"Dimension_{x}", list(range(1, n_components + 1))))
 
     # Initialize missing values to their column means
     missing = ~np.isfinite(X)
