@@ -160,7 +160,7 @@ class Combat(BaseEstimator, TransformerMixin):
                  empirical_bayes: bool = True,
                  parametric: bool = True,
                  mean_only: bool = False,
-                 return_only_features: bool = True,
+                 return_only_features: bool = False,
                  copy: bool = True) -> None:
 
         self.features = features
@@ -576,7 +576,7 @@ class AutoCombat(Combat):
                  empirical_bayes: bool = True,
                  parametric: bool = True,
                  mean_only: bool = False,
-                 return_only_features: bool = True,
+                 return_only_features: bool = False,
                  random_state: Union[int, None] = 123,
                  copy: bool = True) -> None:
         super().__init__(features=features,
