@@ -503,6 +503,11 @@ class AutoCombat(Combat):
 
     continuous_cluster_features: Target sites_features which are continuous to scale (e.g. EchoTime).
 
+    features_reduction: Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
+        Default: None
+
+    n_components: Dimension of the embedded space for features reduction. Default 2.
+
     threshold_missing_sites_features: Threshold of acceptable missing features for sites features clustering.
         25 specify that 75% of all samples need to have this features. Default 25.
 
@@ -540,6 +545,10 @@ class AutoCombat(Combat):
     info_clustering_ : Dictionary that stores info of clustering from sites_features with cluster_nb, labels, ref_label
         wicss_clusters, best_wicss_cluster
 
+    cls_feature_reduction_: feature reduction object
+
+    X_hat_: array after fit
+
     Examples
     --------
     >>> data = pd.DataFrame([{"features_1": 0.97, "site_features_0": 2, "site_features_1": 0},
@@ -558,6 +567,11 @@ class AutoCombat(Combat):
     -----
     NaNs values are not treated.
 
+    Warning
+    _______
+    Be sure to have the same sites features between fit and transform. The choice has not been to imposed
+    an entry format to check a colum name or a slice.
+
     """
 
     def __init__(self,
@@ -570,6 +584,8 @@ class AutoCombat(Combat):
                  scaler_clustering=StandardScaler(),
                  discrete_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
                  continuous_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
+                 features_reduction: Optional[str] = None,
+                 n_components: int = 2,
                  threshold_missing_sites_features=25,
                  drop_site_columns: bool = True,
                  discrete_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
@@ -602,6 +618,8 @@ class AutoCombat(Combat):
         self.scaler_clustering = scaler_clustering
         self.discrete_cluster_features = discrete_cluster_features
         self.continuous_cluster_features = continuous_cluster_features
+        self.features_reduction = features_reduction
+        self.n_components = n_components
         self.threshold_missing_sites_features = threshold_missing_sites_features
         self.drop_site_columns = drop_site_columns
         self.discrete_combat_covariates = discrete_combat_covariates
@@ -622,6 +640,8 @@ class AutoCombat(Combat):
         if hasattr(self, 'cls_', ):
             del self.cls_
             del self.info_clustering_
+            del self.cls_feature_reduction_
+            del self.X_hat_
 
     def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
         """
@@ -648,12 +668,10 @@ class AutoCombat(Combat):
             clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
-            clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
-
-            self.cls_, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, _, _ = optimal_clustering(
-                X=clustering_data,
-                size_min=self.size_min,
-                method=self.method)
+            self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label,\
+                wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
+                                                                                        size_min=self.size_min,
+                                                                                        method=self.method)
 
             self.info_clustering_ = {
                 'cluster_nb': cluster_nb,
@@ -698,7 +716,11 @@ class AutoCombat(Combat):
             clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
-            clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
+            # check for NaN for clustering data
+            clustering_data.fillna(value=self.X_hat_.mean().to_dict(), inplace=True)
+            print(clustering_data)
+            if self.features_reduction is not None:
+                clustering_data = self.cls_feature_reduction_.transform(clustering_data)
 
             # get labels for sites
             labels = self.cls_.predict(clustering_data)
@@ -710,12 +732,15 @@ class AutoCombat(Combat):
 
         if self.sites_features is not None:
             # drop added sites columns
-            if self.drop_site_columns:
-                X = X[:, :-1]
+            if self.drop_site_columns and not self.return_only_features:
+                if isinstance(X, pd.DataFrame):
+                    X = X.iloc[:, :-1]
+                else:
+                    X = X[:, :-1]
 
         return X
 
-    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[np.ndarray, List, List, List]:
+    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[pd.DataFrame, List, List, List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the Combat()
@@ -757,7 +782,7 @@ class AutoCombat(Combat):
         percent_missing = percent_missing.to_dict()
 
         for features, val in percent_missing.items():
-            if val > (100 - self.threshold_missing_sites_features):
+            if val > self.threshold_missing_sites_features:
                 warnings.warn(f"sites_features: {features} removed because more than "
                               f"{self.threshold_missing_sites_features}% of missing data")
                 columns_clustering_features = np.delete(columns_clustering_features,
@@ -768,18 +793,19 @@ class AutoCombat(Combat):
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
             [columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features])
 
-        clustering_data = X.iloc[:, columns_clustering_features]
-
+        clustering_data_discrete, clustering_data_continuous = pd.DataFrame([]), pd.DataFrame([])
         if columns_discrete_cluster_features:
-            clustering_data = one_hot_encoder(df=pd.DataFrame(clustering_data),
-                                              columns=columns_discrete_cluster_features)
+            clustering_data_discrete = one_hot_encoder(df=X.iloc[:, columns_discrete_cluster_features],
+                                                       columns=list(
+                                                           X.iloc[:, columns_discrete_cluster_features].columns))
 
         if columns_continuous_cluster_features:
-            clustering_data = scaler_encoder(df=pd.DataFrame(clustering_data),
-                                             columns=columns_continuous_cluster_features,
-                                             scaler=self.scaler_clustering)
+            clustering_data_continuous = scaler_encoder(df=X.iloc[:, columns_continuous_cluster_features],
+                                                        columns=list(
+                                                            X.iloc[:, columns_continuous_cluster_features].columns),
+                                                        scaler=self.scaler_clustering)
 
-        clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
+        clustering_data = pd.concat([clustering_data_discrete, clustering_data_continuous], axis=1)
 
         return clustering_data, columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features
 
@@ -845,6 +871,12 @@ class ImageCombat(AutoCombat):
 
     continuous_cluster_features: Target sites_features which are continuous to scale (e.g. EchoTime).
 
+    features_reduction: Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
+        Default: None
+
+    n_components: Dimension of the embedded space for features reduction.
+        Default 2.
+
     threshold_missing_sites_features: Threshold of acceptable missing features for sites features clustering.
         25 specify that 75% of all samples need to have this features. Default 25.
 
@@ -895,6 +927,8 @@ class ImageCombat(AutoCombat):
                  scaler_clustering=StandardScaler(),
                  discrete_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
                  continuous_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
+                 features_reduction: Optional[str] = None,
+                 n_components: int = 2,
                  threshold_missing_sites_features=25,
                  drop_site_columns: bool = True,
                  discrete_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
@@ -914,6 +948,8 @@ class ImageCombat(AutoCombat):
                          scaler_clustering=scaler_clustering,
                          discrete_cluster_features=discrete_cluster_features,
                          continuous_cluster_features=continuous_cluster_features,
+                         features_reduction=features_reduction,
+                         n_components=n_components,
                          threshold_missing_sites_features=threshold_missing_sites_features,
                          drop_site_columns=drop_site_columns,
                          discrete_combat_covariates=discrete_combat_covariates,
