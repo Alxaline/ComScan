@@ -768,7 +768,7 @@ class AutoCombat(Combat):
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
             [columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features])
 
-        clustering_data = self._validate_data(X.iloc[:, columns_clustering_features], copy=self.copy, estimator=self)
+        clustering_data = X.iloc[:, columns_clustering_features]
 
         if columns_discrete_cluster_features:
             clustering_data = one_hot_encoder(df=pd.DataFrame(clustering_data),
@@ -778,6 +778,8 @@ class AutoCombat(Combat):
             clustering_data = scaler_encoder(df=pd.DataFrame(clustering_data),
                                              columns=columns_continuous_cluster_features,
                                              scaler=self.scaler_clustering)
+
+        clustering_data = self._validate_data(clustering_data, copy=self.copy, estimator=self)
 
         return clustering_data, columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features
 
