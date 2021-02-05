@@ -288,6 +288,7 @@ class Combat(BaseEstimator, TransformerMixin):
         all_columns = self._check_data(X)
         columns_needed = all_columns[0:4]
 
+        # Warning: Here we reorder all columns
         columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites \
             = _reorder_columns(columns_needed)
 
@@ -295,7 +296,7 @@ class Combat(BaseEstimator, TransformerMixin):
         if isinstance(X, pd.DataFrame):
             columns_df = list(X.columns)
             if self.return_only_features:
-                columns_df = list(X.columns[columns_features])
+                columns_df = list(X.columns[columns_needed[0]])
             X = X.to_numpy()
 
         # make a copy of original
@@ -345,7 +346,7 @@ class Combat(BaseEstimator, TransformerMixin):
         original_X[:, columns_needed[0]] = bayes_data
 
         if self.return_only_features:
-            original_X = original_X[:, columns_features]
+            original_X = original_X[:, columns_needed[0]]
 
         if columns_df is not None:
             original_X = pd.DataFrame(original_X, columns=columns_df)
