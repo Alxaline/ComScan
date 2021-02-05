@@ -167,7 +167,7 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
                                                                                                     n_components=n_components,
                                                                                                     random_state=random_state)
 
-        all_cls.append(cls), all_cls_features_reduction.append(all_cls_features_reduction), all_labels.append(labels), \
+        all_cls.append(cls), all_cls_features_reduction.append(cls_features_reduction), all_labels.append(labels), \
         all_centroids.append(centroids), all_inertia.append(inertia), all_Xhat.append(X_hat)
 
         if method == "elbow":
