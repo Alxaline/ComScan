@@ -359,10 +359,11 @@ class Combat(BaseEstimator, TransformerMixin):
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the Combat()
+
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
         :param check_single_covariate: check single covariate
-        :return: idx of: columns_features, columns_discrete_covariates,
-                         columns_continuous_covariates, columns_sites, other_columns
+        :return: idx of columns_features, columns_discrete_covariates,
+            columns_continuous_covariates, columns_sites, other_columns
         """
         self.features, self.discrete_covariates, self.continuous_covariates, self.sites = map(
             lambda x: [x] if isinstance(x, (str, int)) else x if x is not None else [],
@@ -437,6 +438,7 @@ class Combat(BaseEstimator, TransformerMixin):
     def save_fit(self, filepath: str) -> None:
         """
         save a fitted model attribute (info_dict_fit_, stand_mean_, var_pooled_, gamma_star_, delta_star_)
+
         :param filepath: filepath were to save. if no extension .pkl will add it
         """
         if not os.path.exists(filepath):
@@ -454,6 +456,7 @@ class Combat(BaseEstimator, TransformerMixin):
     def load_fit(self, filepath: str) -> None:
         """
         load a fitted model attribute (info_dict_fit_, stand_mean_, var_pooled_, gamma_star_, delta_star_)
+
         :param filepath: filepath of the pkl file to load
         """
         with open(filepath, 'rb') as pickle_file:  # Overwrites any existing file.
@@ -483,35 +486,35 @@ class AutoCombat(Combat):
 
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
 
-    sites: Target variable for ComScan problems (e.g. acquisition sites or scanner).
-           This argument is Optional. If this argument is provided will run traditional ComBat.
-           In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
-            continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
-           are unused.
+    sites : Target variable for ComScan problems (e.g. acquisition sites or scanner).
+        This argument is Optional. If this argument is provided will run traditional ComBat.
+        In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
+        continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
+        are unused.
 
-    size_min: Constraint of the minimum size of site for clustering.
+    size_min : Constraint of the minimum size of site for clustering.
 
-    method: "silhouette" or "elbow". Method to define the optimal number of cluster. Default: silhouette.
+    method : "silhouette" or "elbow". Method to define the optimal number of cluster. Default: silhouette.
 
-    use_ref_site: Use a ref site to be used as reference for batch adjustment. The ref site used is the cluster
-     with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
+    use_ref_site : Use a ref site to be used as reference for batch adjustment. The ref site used is the cluster
+        with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
 
     scaler_clustering: Scaler to use for continuous site features. Need to be a scikit learn scaler.
         Default: StandardScaler()
 
-    discrete_cluster_features: Target sites_features which are categorical to one-hot (e.g. ManufacturerModelName).
+    discrete_cluster_features : Target sites_features which are categorical to one-hot (e.g. ManufacturerModelName).
 
-    continuous_cluster_features: Target sites_features which are continuous to scale (e.g. EchoTime).
+    continuous_cluster_features : Target sites_features which are continuous to scale (e.g. EchoTime).
 
-    features_reduction: Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
+    features_reduction : Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
         Default: None
 
-    n_components: Dimension of the embedded space for features reduction. Default 2.
+    n_components : Dimension of the embedded space for features reduction. Default 2.
 
-    threshold_missing_sites_features: Threshold of acceptable missing features for sites features clustering.
+    threshold_missing_sites_features : Threshold of acceptable missing features for sites features clustering.
         25 specify that 75% of all samples need to have this features. Default 25.
 
-    drop_site_columns: Drop sites columns find by clustering in return.
+    drop_site_columns : Drop sites columns find by clustering in return.
 
     discrete_combat_covariates : Target covariates which are categorical (e.g. male or female).
 
@@ -526,10 +529,10 @@ class AutoCombat(Combat):
     mean_only : Adjust only the mean (no scaling)
         Default is False.
 
-    return_only_features: Return only features.
+    return_only_features : Return only features.
         Default is False
 
-    random_state: int, RandomState instance or None, optional, default: 123
+    random_state : int, RandomState instance or None, optional, default: 123
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
@@ -545,9 +548,11 @@ class AutoCombat(Combat):
     info_clustering_ : Dictionary that stores info of clustering from sites_features with cluster_nb, labels, ref_label
         wicss_clusters, best_wicss_cluster
 
-    cls_feature_reduction_: feature reduction object
+    cls_feature_reduction_ : feature reduction object
 
-    X_hat_: array after fit
+    features_reduction_mean_ :
+
+    X_hat_ : array after fit
 
     Examples
     --------
@@ -639,8 +644,9 @@ class AutoCombat(Combat):
 
         if hasattr(self, 'cls_', ):
             del self.cls_
-            del self.info_clustering_
             del self.cls_feature_reduction_
+            del self.features_reduction_mean_
+            del self.info_clustering_
             del self.X_hat_
 
     def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
@@ -674,6 +680,9 @@ class AutoCombat(Combat):
                                                                                     method=self.method,
                                                                                     features_reduction=self.features_reduction,
                                                                                     random_state=self.random_state)
+            if self.features_reduction:
+                self.features_reduction_mean_ = pd.DataFrame([self.cls_feature_reduction_.mean_],
+                                                             columns=list(clustering_data.columns)).iloc[0].to_dict()
 
             self.info_clustering_ = {
                 'cluster_nb': cluster_nb,
@@ -719,7 +728,7 @@ class AutoCombat(Combat):
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
             # check for NaN for clustering data
-            clustering_data.fillna(value=self.X_hat_.mean().to_dict(), inplace=True)
+            clustering_data.fillna(value=self.features_reduction_mean_, inplace=True)
 
             if self.features_reduction is not None:
                 clustering_data = self.cls_feature_reduction_.transform(clustering_data)
