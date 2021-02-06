@@ -73,10 +73,12 @@ def _reorder_columns(all_columns: List[List]):
 
 class Combat(BaseEstimator, TransformerMixin):
     """
-    Harmonize/normalize features using Combat's [1] parametric empirical Bayes framework
+    Harmonize/normalize features using Combat's parametric empirical Bayes framework
 
-    [1] Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
-    measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+    .. seealso::
+        `Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
+        measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+        <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5845848>`__
 
     Parameters
     ----------
@@ -100,8 +102,8 @@ class Combat(BaseEstimator, TransformerMixin):
     mean_only : Adjust only the mean (no scaling).
         Default is False.
 
-    return_only_features: Return only features.
-        Default is False
+    return_only_features : Return only features.
+        Default is False.
 
     copy : Set to False to perform inplace row normalization and avoid a copy (if the input is already a numpy array).
         Default is True.
@@ -123,7 +125,7 @@ class Combat(BaseEstimator, TransformerMixin):
     delta_star_ : array-like
         Adjustement delta star
 
-    info_dict_transform_ : dictionary that stores batch info of transformed data with:
+    info_dict_transform_ : dictionary that stores batch info of transformed data with
          batch_levels, ref_level, n_batch, n_sample, sample_per_batch, batch_info
 
     Examples
@@ -406,7 +408,7 @@ class Combat(BaseEstimator, TransformerMixin):
 
         return columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns
 
-    def _adjust_final_data(self, s_data, design, sample_per_batch, n_sample, batch_info):
+    def _adjust_final_data(self, s_data, design, sample_per_batch, n_sample, batch_info) -> np.ndarray:
         """
         Adjust final data
 
@@ -415,7 +417,7 @@ class Combat(BaseEstimator, TransformerMixin):
         :param sample_per_batch: number of sample per batch
         :param n_sample: total number of sample
         :param batch_info: batch info is batch index for n_batch
-        :return:
+        :return: bayes data
         """
         bayes_data = s_data
         batch_design = design[:, :self.info_dict_fit_["n_batch"]]
@@ -437,7 +439,8 @@ class Combat(BaseEstimator, TransformerMixin):
 
     def save_fit(self, filepath: str) -> None:
         """
-        save a fitted model attribute (info_dict_fit_, stand_mean_, var_pooled_, gamma_star_, delta_star_)
+        save a fitted model attribute :py:obj:`info_dict_fit_`, :py:obj:`stand_mean_`, :py:obj:`var_pooled_`,
+        :py:obj:`gamma_star_`, :py:obj:`delta_star_`
 
         :param filepath: filepath were to save. if no extension .pkl will add it
         """
@@ -455,7 +458,8 @@ class Combat(BaseEstimator, TransformerMixin):
 
     def load_fit(self, filepath: str) -> None:
         """
-        load a fitted model attribute (info_dict_fit_, stand_mean_, var_pooled_, gamma_star_, delta_star_)
+        load a fitted model attribute :py:obj:`info_dict_fit_`, :py:obj:`stand_mean_`, :py:obj:`var_pooled_`,
+        :py:obj:`gamma_star_`, :py:obj:`delta_star_`
 
         :param filepath: filepath of the pkl file to load
         """
@@ -467,7 +471,7 @@ class Combat(BaseEstimator, TransformerMixin):
 
 class AutoCombat(Combat):
     """
-    Harmonize/normalize features using Combat's [1] parametric empirical Bayes framework.
+    Harmonize/normalize features using Combat's parametric empirical Bayes framework.
 
     Combat need to have well-known acquisition sites or scanner to harmonize features.
     It is sometimes difficult to define an imaging acquisition site if on two sites imaging parameters
@@ -476,9 +480,10 @@ class AutoCombat(Combat):
     Thus ComScan can be used on data not seen during training because it can predict which imager best matches
     the one it has seen during training.
 
-
-    [1] Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
-    measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+    .. seealso::
+        `Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
+        measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+        <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5845848>`__
 
     Parameters
     ----------
@@ -499,20 +504,22 @@ class AutoCombat(Combat):
     use_ref_site : Use a ref site to be used as reference for batch adjustment. The ref site used is the cluster
         with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
 
-    scaler_clustering: Scaler to use for continuous site features. Need to be a scikit learn scaler.
-        Default: StandardScaler()
+    scaler_clustering : Scaler to use for continuous site features. Need to be a scikit learn scaler.
+        Default is :py:class:`StandardScaler()`.
 
     discrete_cluster_features : Target sites_features which are categorical to one-hot (e.g. ManufacturerModelName).
 
     continuous_cluster_features : Target sites_features which are continuous to scale (e.g. EchoTime).
 
     features_reduction : Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
-        Default: None
+        Default is None.
 
-    n_components : Dimension of the embedded space for features reduction. Default 2.
+    n_components : Dimension of the embedded space for features reduction.
+        Default is 2.
 
     threshold_missing_sites_features : Threshold of acceptable missing features for sites features clustering.
-        25 specify that 75% of all samples need to have this features. Default 25.
+        25 specify that 75% of all samples need to have this features.
+        Default is 25.
 
     drop_site_columns : Drop sites columns find by clustering in return.
 
@@ -530,7 +537,7 @@ class AutoCombat(Combat):
         Default is False.
 
     return_only_features : Return only features.
-        Default is False
+        Default is False.
 
     random_state : int, RandomState instance or None, optional, default: 123
         If int, random_state is the seed used by the random number generator;
@@ -550,7 +557,7 @@ class AutoCombat(Combat):
 
     cls_feature_reduction_ : feature reduction object
 
-    features_reduction_mean_ :
+    features_reduction_mean_ : dict of mean for clustering data (use for imputation)
 
     X_hat_ : array after fit
 
@@ -568,6 +575,7 @@ class AutoCombat(Combat):
            discrete_cluster_features=[], features=['features_1'],
            sites=['sites'],
            sites_features=['site_features_0', 'site_features_1'], size_min=2)
+
     Notes
     -----
     NaNs values are not treated.
@@ -754,7 +762,8 @@ class AutoCombat(Combat):
     def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[pd.DataFrame, List, List, List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
-        format needed by the Combat()
+        format needed by the :py:class:`Combat()`
+
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
         :return: idx of: columns_clustering_features
         """
@@ -824,6 +833,7 @@ class AutoCombat(Combat):
             -> Union[np.ndarray, pd.DataFrame]:
         """
         Add sites find by clustering to X
+
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
         :param labels: labels of sites find by clustering
         """
@@ -846,50 +856,54 @@ class AutoCombat(Combat):
 
 class ImageCombat(AutoCombat):
     """
-    Harmonize/normalize features using Combat's [1] parametric empirical Bayes framework directly on image.
+    Harmonize/normalize features using Combat's parametric empirical Bayes framework directly on image.
 
     ImageCombat allow the possibility to Harmonize/normalize a set of NIFTI images.
     All images must have the same dimensions and orientation. A common mask is created based on an heuristic
     proposed by T.Nichols. Images are then vectorizing for ComScan.
     ImageCombat allows the possibily to use Combat (well-defined site) or AutoCombat (clustering for sites finding)
 
-    [1] Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
-    measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+    .. seealso::
+        `Fortin, Jean-Philippe, et al. "Harmonization of cortical thickness
+        measurements across scanners and sites." Neuroimage 167 (2018): 104-1
+        <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5845848>`__
 
     Parameters
     ----------
-    image_path: image_path of nifti files.
+    image_path : image_path of nifti files.
 
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
 
-    sites: Target variable for ComScan problems (e.g. acquisition sites or scanner).
-           This argument is Optional. If this argument is provided will run traditional ComBat.
-           In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
-            continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
-           are unused.
+    sites : Target variable for ComScan problems (e.g. acquisition sites or scanner).
+        This argument is Optional. If this argument is provided will run traditional ComBat.
+        In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
+        continuous_cluster_features, threshold_missing_sites_features, drop_site_columns are unused.
 
-    size_min: Constraint of the minimum size of site for clustering.
+    size_min : Constraint of the minimum size of site for clustering.
 
-    method: "silhouette" or "elbow". Method to define the optimal number of cluster. Default: silhouette.
+    method : "silhouette" or "elbow". Method to define the optimal number of cluster.
+        Default is silhouette.
 
     use_ref_site: Use a ref site to be used as reference for batch adjustment. The ref site used is the cluster
-     with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
+        with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
+        Default is False.
 
     scaler_clustering: Scaler to use for continuous site features. Need to be a scikit learn scaler.
-        Default: StandardScaler()
+        Default is :py:class:`StandardScaler()`.
 
     discrete_cluster_features: Target sites_features which are categorical to one-hot (e.g. ManufacturerModelName).
 
     continuous_cluster_features: Target sites_features which are continuous to scale (e.g. EchoTime).
 
     features_reduction: Method for reduction of the embedded space with n_components. Can be 'pca' or 'umap'.
-        Default: None
+        Default is None.
 
     n_components: Dimension of the embedded space for features reduction.
-        Default 2.
+        Default is 2.
 
     threshold_missing_sites_features: Threshold of acceptable missing features for sites features clustering.
-        25 specify that 75% of all samples need to have this features. Default 25.
+        25 specify that 75% of all samples need to have this features.
+        Default is 25.
 
     drop_site_columns: Drop sites columns find by clustering in return.
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
-Created on: Jan 14, 2021
+| Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
+| Created on: Jan 14, 2021
 """
 import os
 import re
@@ -54,12 +54,12 @@ def _compute_mask_files(input_path: List[str],
         resliced with a large padding of zeros.
     :param opening: int, optional
         Size of the morphological opening performed as post-processing
-    :return:
-     mask : 3D boolean array
-        The brain mask
-    mean_image : 3d ndarray, optional
-        The main of all the images used to estimate the mask. Only
-        provided if `return_mean` is True.
+    :returns:
+        - mask:
+          3D boolean array. The brain mask
+        - mean_image:
+          3d ndarray, optional
+          The main of all the images used to estimate the mask. Only provided if `return_mean` is True.
     """
 
     if not os.path.exists(os.path.dirname(output_path)):
@@ -85,6 +85,7 @@ def flatten_nifti_files(input_path: List[str], mask: Union[str, np.ndarray],
                         compress_save: bool = True):
     """
     Flattened list of nifti files to a flattened array [n_images, n_masked_voxels] and save to .npy or .npz if compressed
+
     :param input_path: List of nifti files path
     :param mask: path of mask or array
     :param output_flattened_array_path: path of the output flattened array. No extension is needed. Will be save as

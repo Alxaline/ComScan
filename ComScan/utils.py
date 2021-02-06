@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
-Created on: Jan 14, 2021
+| Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
+| Created on: Jan 14, 2021
 """
 import os
 from typing import List
@@ -18,10 +18,11 @@ from sklearn.preprocessing import StandardScaler
 def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
     """
     Check that a list of columns name exist in a DataFrame.
+
     :param df: a DataFrame
     :param _vars: List of columns name to check
-    :return index of columns name
-    :raise Value error if missing features
+    :return: index of columns name
+    :raise: ValueError if missing features
     """
     column_index = get_column_index(df, _vars)
     is_feature_present = column_index != -1
@@ -33,15 +34,26 @@ def check_exist_vars(df: pd.DataFrame, _vars: List) -> np.ndarray:
 
 
 def get_column_index(df: pd.DataFrame, query_cols: List[str]) -> Union[np.ndarray]:
+    """
+    Get columns index from columns name
+
+    :param df: input dataframe
+    :param query_cols: List name of colunns
+    :return: array of column index
+    """
     return df.columns.get_indexer(query_cols)
 
 
 def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object",)) -> pd.DataFrame:
     """
     identify type of columns in DataFrame
+
     :param df: input dataframe
-    :param identify_dtypes: pandas dtype, see:
-     https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes
+    :param identify_dtypes: pandas dtype
+
+    .. note::
+        see `<https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes>`_ for pandas dtype
+
     :return: summary df with col index and col name for all identify_dtypes vars
     """
     col_type = df.dtypes
@@ -61,12 +73,12 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
     """
     Encoding categorical feature in the dataframe, allow possibility to keep NaN.
     The categorical feature index and name are from cat_var function. These columns need to be "object" dtypes.
+
     :param df: input dataframe
     :param columns: List of columns to encode
     :param drop_column: Set to True to drop the original column after encoding. Default to True.
     :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
-    :return:
-        df: new dataframe where columns are one hot encoded
+    :return: new dataframe where columns are one hot encoded
     """
 
     check_exist_vars(df, columns)
@@ -114,7 +126,7 @@ def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_sta
     """
     t-distributed Stochastic Neighbor Embedding.
 
-    t-SNE [1] is a tool to visualize high-dimensional data. It converts
+    t-SNE is a tool to visualize high-dimensional data. It converts
     similarities between data points to joint probabilities and tries
     to minimize the Kullback-Leibler divergence between the joint
     probabilities of the low-dimensional embedding and the
@@ -128,7 +140,7 @@ def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_sta
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
-    :param n_jobs, default=-1
+    :param n_jobs: default=-1
         The number of parallel jobs to run for neighbors search. This parameter
         has no impact when ``metric="precomputed"`` or
         (``metric="euclidean"`` and ``method="exact"``).
@@ -154,7 +166,7 @@ def u_map(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_st
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
-    :param n_jobs, default=-1
+    :param n_jobs: default=-1
         The number of parallel jobs to run for neighbors search. This parameter
         has no impact when ``metric="precomputed"`` or
         (``metric="euclidean"`` and ``method="exact"``).
@@ -195,6 +207,7 @@ def check_is_nii_exist(input_file_path: str) -> str:
 
     :param input_file_path: string of the path of the nii or nii.gz.
     :return: string if exist, else raise Error.
+    :raise: FileNotFoundError or FileExistsError
     """
     if not os.path.exists(input_file_path):
         raise FileNotFoundError(f"{input_file_path} was not found, check if it's a valid file path")
@@ -210,7 +223,7 @@ def load_nifty_volume_as_array(input_path_file: str) -> Tuple[np.ndarray, Tuple[
     Load nifty image into numpy array [z,y,x] axis order.
     The output array shape is like [Depth, Height, Width].
 
-    :param input_path_file: input path file, should be *.nii or *.nii.gz
+    :param input_path_file: input path file, should be '*.nii' or '*.nii.gz'
     :return: a numpy data array, (with header)
     """
     img = sitk.ReadImage(input_path_file)
@@ -251,15 +264,16 @@ def save_to_nii(im: np.ndarray, header: (tuple, tuple, tuple), output_dir: str, 
 
 def mat_to_bytes(nrows: int, ncols: int, dtype: int = 32, out: str = "GB") -> float:
     """
-    # https://gist.github.com/dimalik/f4609661fb83e3b5d22e7550c1776b90
     Calculate the size of a numpy array in bytes.
+
+    .. note::
+        code from: `<https://gist.github.com/dimalik/f4609661fb83e3b5d22e7550c1776b90>`_
 
     :param nrows: the number of rows of the matrix.
     :param ncols: the number of columns of the matrix.
     :param dtype: the size of each element in the matrix. Defaults to 32bits.
     :param out: the output unit. Defaults to gigabytes (GB)
     :returns: the size of the matrix in the given unit
-    :rtype: a float
     """
     sizes = {v: i for i, v in enumerate("BYTES KB MB GB TB".split())}
     return nrows * ncols * dtype / 8 / 1024. ** sizes[out]

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
-Created on: Jan 14, 2021
+| Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
+| Created on: Jan 14, 2021
 """
 import warnings
 from typing import Optional, Sequence, Tuple, Union
@@ -27,7 +27,9 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
         -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], np.ndarray, np.ndarray, np.float, np.ndarray]:
     """
     K-Means ComScan with minimum and maximum cluster size constraints with the possibility of missing values.
-    # inspired of https://stackoverflow.com/questions/35611465/python-scikit-learn-clustering-with-missing-data
+
+    .. note::
+        inspired of `<https://stackoverflow.com/questions/35611465/python-scikit-learn-clustering-with-missing-data>`_
 
     :param X: array-like or DataFrame of floats, shape (n_samples, n_features)
         The observations to cluster.
@@ -42,14 +44,20 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
-    :return:
-        cls: KMeansConstrained classifier object
-        cls_features_reduction: PCA or UMAP reduction object
-        labels: label[i] is the code or index of the centroid the i'th observation is closest to.
-        centroid: Centroids found at the last iteration of k-means.
-        inertia: The final value of the inertia criterion (sum of squared distances to
-        the closest centroid for all observations in the training set).
-        X_hat: Copy of X with the missing values filled in.
+    :returns:
+        - cls:
+          KMeansConstrained classifier object
+        - cls_features_reduction:
+          PCA or UMAP reduction object
+        - labels:
+          label[i] is the code or index of the centroid the i'th observation is closest to.
+        - centroid:
+          Centroids found at the last iteration of k-means.
+        - inertia:
+          The final value of the inertia criterion (sum of squared distances to
+          the closest centroid for all observations in the training set).
+        - X_hat:
+          Copy of X with the missing values filled in.
     """
 
     columns_df = []
@@ -118,7 +126,7 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
             np.float], np.float, np.ndarray, np.ndarray]:
     """
     Function to find the optimal clustering using a constrained k means. Two method are available to find the optimal
-    number of cluster 'silhouette' and 'elbow'.
+    number of cluster ``silhouette`` or ``elbow``.
 
     :param X: array-like or DataFrame of floats, shape (n_samples, n_features)
         The observations to cluster.
@@ -133,15 +141,24 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
         If None, the random number generator is the RandomState instance used
         by `np.random`.
     :return:
-        cls: KMeansConstrained classifier object
-        cls_features_reduction: PCA or UMAP reduction object
-        cluster_nb: optimal number of cluster
-        labels: label[i] is the code or index of the centroid the i'th observation is closest to.
-        ref_label: cluster label with the minimal within-cluster sum-of-squares.
-        wicss_clusters: within-cluster sum-of-squares for each cluster
-        best_wicss_cluster: minimal wicss.
-        centroid: Centroids found at the last iteration of k-means.
-        X_hat: Copy of X with the missing values filled in.
+        - cls:
+          KMeansConstrained classifier object
+        - cls_features_reduction:
+          PCA or UMAP reduction object
+        - cluster_nb:
+          optimal number of cluster
+        - labels:
+          label[i] is the code or index of the centroid the i'th observation is closest to.
+        - ref_label:
+          cluster label with the minimal within-cluster sum-of-squares.
+        - wicss_clusters:
+          within-cluster sum-of-squares for each cluster
+        - best_wicss_cluster:
+          minimal wicss.
+        - centroid:
+          Centroids found at the last iteration of k-means.
+        - X_hat:
+          Copy of X with the missing values filled in.
     """
     assert method in ["elbow", "silhouette"], "method need to be 'elbow' or 'silhouette'"
 
