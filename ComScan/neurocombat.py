@@ -561,6 +561,8 @@ class AutoCombat(Combat):
 
     X_hat_ : array after fit
 
+    sites_features_removed_ : column features for clustering removed which were below the threshold of missing features
+
     Examples
     --------
     >>> data = pd.DataFrame([{"features_1": 0.97, "site_features_0": 2, "site_features_1": 0},
@@ -733,7 +735,9 @@ class AutoCombat(Combat):
 
         if self.sites_features is not None:
             clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
-            columns_continuous_cluster_features = self._check_data_cluster(X)
+            columns_continuous_cluster_features = self._check_data_cluster(X, remove_percent_missing=False)
+
+            # remove same features has in train
 
             # check for NaN for clustering data
             clustering_data.fillna(value=self.features_reduction_mean_, inplace=True)
@@ -759,12 +763,14 @@ class AutoCombat(Combat):
 
         return X
 
-    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[pd.DataFrame, List, List, List]:
+    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame], remove_percent_missing: bool = True) -> Tuple[
+        pd.DataFrame, List, List, List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the :py:class:`Combat()`
 
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
+        :param remove_percent_missing: do the remove of percent missing columns
         :return: idx of: columns_clustering_features
         """
 
@@ -801,13 +807,16 @@ class AutoCombat(Combat):
         percent_missing = X.iloc[:, columns_clustering_features].isnull().sum() * 100 / len(X)
         percent_missing = percent_missing.to_dict()
 
-        for features, val in percent_missing.items():
-            if val > self.threshold_missing_sites_features:
-                warnings.warn(f"sites_features: {features} removed because more than "
-                              f"{self.threshold_missing_sites_features}% of missing data")
-                columns_clustering_features = np.delete(columns_clustering_features,
-                                                        np.where(columns_clustering_features ==
-                                                                 get_column_index(X, [features])[0]))
+        if remove_percent_missing:
+            self.sites_features_removed_ = []
+            for features, val in percent_missing.items():
+                if val > self.threshold_missing_sites_features:
+                    warnings.warn(f"sites_features: {features} removed because more than "
+                                  f"{self.threshold_missing_sites_features}% of missing data")
+                    self.sites_features_removed_.append(features)
+                    columns_clustering_features = np.delete(columns_clustering_features,
+                                                            np.where(columns_clustering_features ==
+                                                                     get_column_index(X, [features])[0]))
 
         columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features = map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
