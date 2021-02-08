@@ -738,6 +738,8 @@ class AutoCombat(Combat):
             columns_continuous_cluster_features = self._check_data_cluster(X, remove_percent_missing=False)
 
             # remove same features has in train
+            if self.sites_features_removed_:
+                clustering_data.drop(columns=self.sites_features_removed_)
 
             # check for NaN for clustering data
             clustering_data.fillna(value=self.features_reduction_mean_, inplace=True)
