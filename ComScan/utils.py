@@ -4,6 +4,7 @@
 | Created on: Jan 14, 2021
 """
 import os
+import warnings
 from typing import List
 from typing import Tuple, Union, Sequence
 
@@ -95,6 +96,36 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
     return df
 
 
+def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False) -> pd.DataFrame:
+    """
+    Fix columns for the test set. When the train was encoded with :py:obj:`pd.get_dummies`.
+
+    .. note::
+        Solution from: `<http://fastml.com/how-to-use-pd-dot-get-dummies-with-the-test-set>`_
+
+    :param df: input dataframe
+    :param columns: columns of the original dataframe
+    :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
+    :return: the corrected version of DataFrame for test set
+    """
+    if not inplace:
+        df = df.copy(deep=True)
+
+    missing_cols = set(columns) - set(df.columns)
+    for c in missing_cols:
+        df[c] = 0
+
+    # make sure we have all the columns we need
+    assert (set(columns) - set(df.columns) == set())
+
+    extra_cols = set(df.columns) - set(columns)
+    if extra_cols:
+        warnings.warn("extra columns:", extra_cols)
+
+    df = df[columns]
+    return df
+
+
 def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler(),
                    inplace: bool = False) -> pd.DataFrame:
     """
@@ -104,7 +135,11 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
     :param columns: List of columns to encode
     :param scaler: scaler object from sklearn
     :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
-    :return df: new dataframe where columns are scaler encoded
+    :return:
+        - df:
+          DataFrame scaled
+        - dict_cls_fitted:
+          dict by col of fitted cls
     """
 
     check_exist_vars(df, columns)
@@ -113,12 +148,14 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
         df = df.copy(deep=True)
 
     le = scaler
+    dict_cls_fitted = {}
     for col in columns:
         try:
             df[col] = le.fit_transform(df[col])
         except ValueError:
             df[col] = le.fit_transform(pd.DataFrame(df[col]))
-    return df
+        dict_cls_fitted[col] = le
+    return df, dict_cls_fitted
 
 
 def tsne(df: pd.DataFrame, columns: List[str], n_components: int = 2, random_state: Union[int, None] = 123,

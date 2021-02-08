@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from ComScan.clustering import optimal_clustering
 from ComScan.nifti import _compute_mask_files, flatten_nifti_files
-from ComScan.utils import get_column_index, one_hot_encoder, scaler_encoder, check_is_nii_exist, \
+from ComScan.utils import get_column_index, one_hot_encoder, fix_columns, scaler_encoder, check_is_nii_exist, \
     load_nifty_volume_as_array, save_to_nii, check_exist_vars
 
 __all__ = [
@@ -561,7 +561,9 @@ class AutoCombat(Combat):
 
     X_hat_ : array after fit
 
-    sites_features_removed_ : column features for clustering removed which were below the threshold of missing features
+    clustering_data_columns_ : column features for clustering from train (after encoding + scaling)
+
+    dict_cls_fitted: dict of columns of fitted cls used for fitted clustering data
 
     Examples
     --------
@@ -658,6 +660,8 @@ class AutoCombat(Combat):
             del self.features_reduction_mean_
             del self.info_clustering_
             del self.X_hat_
+            del self.clustering_data_columns_
+            del self.dict_cls_fitted
 
     def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
         """
@@ -683,6 +687,9 @@ class AutoCombat(Combat):
 
             clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
             columns_continuous_cluster_features = self._check_data_cluster(X)
+
+            # get clustering data columns
+            self.clustering_data_columns_ = list(clustering_data.columns)
 
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label, \
             wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
@@ -735,11 +742,7 @@ class AutoCombat(Combat):
 
         if self.sites_features is not None:
             clustering_data, columns_clustering_features, columns_discrete_cluster_features, \
-            columns_continuous_cluster_features = self._check_data_cluster(X, remove_percent_missing=False)
-
-            # remove same features has in train
-            if self.sites_features_removed_:
-                clustering_data.drop(columns=self.sites_features_removed_)
+            columns_continuous_cluster_features = self._check_data_cluster(X)
 
             # check for NaN for clustering data
             clustering_data.fillna(value=self.features_reduction_mean_, inplace=True)
@@ -765,14 +768,13 @@ class AutoCombat(Combat):
 
         return X
 
-    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame], remove_percent_missing: bool = True) -> Tuple[
+    def _check_data_cluster(self, X: Union[np.ndarray, pd.DataFrame]) -> Tuple[
         pd.DataFrame, List, List, List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the :py:class:`Combat()`
 
         :param X: input data array-like or DataFrame of shape (n_samples, n_features)
-        :param remove_percent_missing: do the remove of percent missing columns
         :return: idx of: columns_clustering_features
         """
 
@@ -785,6 +787,10 @@ class AutoCombat(Combat):
 
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X.copy())
+
+        # check that all clustering_data_columns_ from fit are in transform
+        if hasattr(self, "clustering_data_columns_"):
+            check_exist_vars(X, self.clustering_data_columns_)
 
         columns_clustering_features = check_exist_vars(X, self.sites_features)
 
@@ -809,7 +815,7 @@ class AutoCombat(Combat):
         percent_missing = X.iloc[:, columns_clustering_features].isnull().sum() * 100 / len(X)
         percent_missing = percent_missing.to_dict()
 
-        if remove_percent_missing:
+        if not hasattr(self, "clustering_data_columns_"):
             self.sites_features_removed_ = []
             for features, val in percent_missing.items():
                 if val > self.threshold_missing_sites_features:
@@ -819,6 +825,10 @@ class AutoCombat(Combat):
                     columns_clustering_features = np.delete(columns_clustering_features,
                                                             np.where(columns_clustering_features ==
                                                                      get_column_index(X, [features])[0]))
+
+        # remove same features has in train
+        if self.sites_features_removed_ and hasattr(self, "clustering_data_columns_"):
+            X.drop(columns=self.sites_features_removed_, inplace=True, axis=1)
 
         columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features = map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
@@ -830,11 +840,22 @@ class AutoCombat(Combat):
                                                        columns=list(
                                                            X.iloc[:, columns_discrete_cluster_features].columns))
 
+            # pure transform
+            if hasattr(self, "clustering_data_columns_"):
+                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_columns_, inplace=True)
+
         if columns_continuous_cluster_features:
-            clustering_data_continuous = scaler_encoder(df=X.iloc[:, columns_continuous_cluster_features],
-                                                        columns=list(
-                                                            X.iloc[:, columns_continuous_cluster_features].columns),
-                                                        scaler=self.scaler_clustering)
+
+            # pure transform
+            if hasattr(self, "clustering_data_columns_"):
+                clustering_data_continuous = pd.DataFrame([])
+                for col, scal in self.dict_cls_fitted.items():
+                    clustering_data_continuous[col] = scal.fit_transform(X.iloc[:, col])
+            else:
+                clustering_data_continuous, self.dict_cls_fitted \
+                    = scaler_encoder(df=X.iloc[:, columns_continuous_cluster_features],
+                                     columns=list(X.iloc[:, columns_continuous_cluster_features].columns),
+                                     scaler=self.scaler_clustering)
 
         clustering_data = pd.concat([clustering_data_discrete, clustering_data_continuous], axis=1)
 
