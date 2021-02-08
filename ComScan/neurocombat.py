@@ -287,7 +287,7 @@ class Combat(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self)
 
-        all_columns = self._check_data(X)
+        all_columns = self._check_data(X, check_single_covariate=False)
         columns_needed = all_columns[0:4]
 
         # Warning: Here we reorder all columns
