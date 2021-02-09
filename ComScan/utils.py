@@ -69,8 +69,8 @@ def column_var_dtype(df: pd.DataFrame, identify_dtypes: Sequence[str] = ("object
     return cat_var_df
 
 
-def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True,
-                    inplace: bool = False) -> pd.DataFrame:
+def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = True, dummy_na: bool = False,
+                    add_nan_columns: bool = False, inplace: bool = False) -> pd.DataFrame:
     """
     Encoding categorical feature in the dataframe, allow possibility to keep NaN.
     The categorical feature index and name are from cat_var function. These columns need to be "object" dtypes.
@@ -78,6 +78,8 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
     :param df: input dataframe
     :param columns: List of columns to encode
     :param drop_column: Set to True to drop the original column after encoding. Default to True.
+    :param dummy_na: Add a column to indicate NaNs, if False NaNs are ignored.
+    :param add_nan_columns: Add a empty nan columns if not create (can be used are other categories)
     :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
     :return: new dataframe where columns are one hot encoded
     """
@@ -88,24 +90,28 @@ def one_hot_encoder(df: pd.DataFrame, columns: List[str], drop_column: bool = Tr
         df = df.copy(deep=True)
 
     for col in columns:
-        dummies = pd.get_dummies(df[col], prefix=col, drop_first=False)
+        dummies = pd.get_dummies(df[col], prefix=col, drop_first=False, dummy_na=dummy_na)
         df = pd.concat([df, dummies], axis=1)
+        if add_nan_columns:
+            if not any('nan' in x for x in dummies.columns):
+                df[f'{col}_nan'] = 0
         if drop_column:
             df = df.drop(col, axis=1)
 
     return df
 
 
-def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False) -> pd.DataFrame:
+def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False, extra_nans: bool = False) -> pd.DataFrame:
     """
     Fix columns for the test set. When the train was encoded with :py:obj:`pd.get_dummies`.
 
     .. note::
-        Solution from: `<http://fastml.com/how-to-use-pd-dot-get-dummies-with-the-test-set>`_
+        inspired from: `<http://fastml.com/how-to-use-pd-dot-get-dummies-with-the-test-set>`_
 
     :param df: input dataframe
     :param columns: columns of the original dataframe
     :param inplace: If False, return a copy. Otherwise, do operation inplace and return None
+    :param extra_nans: put extra columns as nans based on one hot encoding columns
     :return: the corrected version of DataFrame for test set
     """
     if not inplace:
@@ -121,6 +127,10 @@ def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False) -> 
     extra_cols = set(df.columns) - set(columns)
     if extra_cols:
         warnings.warn(f"extra columns: {list(extra_cols)}")
+        if extra_nans:
+            for col in extra_cols:
+                df[f'{col}_nan'] = df[col]
+                columns.extend(col)
 
     df = df[columns]
     return df

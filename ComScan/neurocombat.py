@@ -853,11 +853,13 @@ class AutoCombat(Combat):
         if columns_discrete_cluster_features:
             clustering_data_discrete = one_hot_encoder(df=X.iloc[:, columns_discrete_cluster_features],
                                                        columns=list(
-                                                           X.iloc[:, columns_discrete_cluster_features].columns))
+                                                           X.iloc[:, columns_discrete_cluster_features].columns),
+                                                       dummy_na=True, add_nan_columns=True)
 
             # pure transform
             if hasattr(self, "clustering_data_discrete_features_"):
-                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_discrete_features_, inplace=True)
+                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_discrete_features_,
+                            inplace=True, extra_nans=True)
             else:
                 self.clustering_data_discrete_features_ = list(clustering_data_discrete.columns)
 
