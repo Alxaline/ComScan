@@ -827,14 +827,15 @@ class AutoCombat(Combat):
                     self.sites_features_removed_.append(features)
                     columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features \
                         = list(map(lambda x: np.delete(x, np.where(x == get_column_index(X, [features])[0])), (
-                            columns_clustering_features, columns_discrete_cluster_features,
-                            columns_continuous_cluster_features)))
+                        columns_clustering_features, columns_discrete_cluster_features,
+                        columns_continuous_cluster_features)))
 
         # remove same features has in train
         if self.sites_features_removed_ and hasattr(self, "clustering_data_features_"):
             for feature_to_remove in self.sites_features_removed_:
                 list(map(lambda x: x.remove(feature_to_remove) if feature_to_remove in x else x,
-                (columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features)))
+                         (columns_clustering_features, columns_discrete_cluster_features,
+                          columns_continuous_cluster_features)))
 
         columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features = map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
