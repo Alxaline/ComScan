@@ -854,7 +854,10 @@ class AutoCombat(Combat):
             if hasattr(self, "clustering_data_features_"):
                 clustering_data_continuous = pd.DataFrame([])
                 for col, scal in self.dict_cls_fitted.items():
-                    clustering_data_continuous[col] = scal.fit_transform(X.iloc[:, col])
+                    try:
+                        clustering_data_continuous[col] = scal.fit_transform(X[col])
+                    except ValueError:
+                        clustering_data_continuous[col] = scal.fit_transform(pd.DataFrame(X[col]))
             else:
                 clustering_data_continuous, self.dict_cls_fitted \
                     = scaler_encoder(df=X.iloc[:, columns_continuous_cluster_features],
