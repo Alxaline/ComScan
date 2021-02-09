@@ -825,9 +825,13 @@ class AutoCombat(Combat):
                     warnings.warn(f"sites_features: {features} removed because more than "
                                   f"{self.threshold_missing_sites_features}% of missing data")
                     self.sites_features_removed_.append(features)
-                    columns_clustering_features = np.delete(columns_clustering_features,
-                                                            np.where(columns_clustering_features ==
-                                                                     get_column_index(X, [features])[0]))
+                    # columns_clustering_features = np.delete(columns_clustering_features,
+                    #                                         np.where(columns_clustering_features ==
+                    #                                                  get_column_index(X, [features])[0]))
+                    columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features \
+                        = list(map(lambda x: np.delete(x, np.where(x == get_column_index(X, [features])[0])), (
+                            columns_clustering_features, columns_discrete_cluster_features,
+                            columns_continuous_cluster_features)))
 
         # remove same features has in train
         if self.sites_features_removed_ and hasattr(self, "clustering_data_features_"):
