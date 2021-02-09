@@ -134,7 +134,6 @@ def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False, ext
                 if len(matching) != 1:
                     raise ValueError(f"matching was not found for adding extra columns in one hot encoding {matching}")
                 df[f"{matching[0]}_nan"] += df[col]
-                columns.append(col)
 
     df = df[columns]
     return df
