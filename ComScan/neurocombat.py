@@ -561,7 +561,9 @@ class AutoCombat(Combat):
 
     X_hat_ : array after fit
 
-    clustering_data_columns_ : column features for clustering from train (after encoding + scaling)
+    clustering_data_features_ : column features for clustering from train (after encoding + scaling)
+
+    clustering_data_discrete_features_: column features for clustering after one-hot encoding
 
     dict_cls_fitted: dict of columns of fitted cls used for fitted clustering data
 
@@ -660,8 +662,9 @@ class AutoCombat(Combat):
             del self.features_reduction_mean_
             del self.info_clustering_
             del self.X_hat_
-            del self.clustering_data_columns_
+            del self.clustering_data_features_
             del self.dict_cls_fitted
+            del self.clustering_data_discrete_features_
 
     def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
         """
@@ -689,7 +692,7 @@ class AutoCombat(Combat):
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
             # get clustering data columns
-            self.clustering_data_columns_ = self.sites_features
+            self.clustering_data_features_ = self.sites_features
 
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label, \
             wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
@@ -788,9 +791,9 @@ class AutoCombat(Combat):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X.copy())
 
-        # check that all clustering_data_columns_ from fit are in transform
-        if hasattr(self, "clustering_data_columns_"):
-            check_exist_vars(X, self.clustering_data_columns_)
+        # check that all clustering_data_features_ from fit are in transform
+        if hasattr(self, "clustering_data_features_"):
+            check_exist_vars(X, self.clustering_data_features_)
 
         columns_clustering_features = check_exist_vars(X, self.sites_features)
 
@@ -815,7 +818,7 @@ class AutoCombat(Combat):
         percent_missing = X.iloc[:, columns_clustering_features].isnull().sum() * 100 / len(X)
         percent_missing = percent_missing.to_dict()
 
-        if not hasattr(self, "clustering_data_columns_"):
+        if not hasattr(self, "clustering_data_features_"):
             self.sites_features_removed_ = []
             for features, val in percent_missing.items():
                 if val > self.threshold_missing_sites_features:
@@ -827,7 +830,7 @@ class AutoCombat(Combat):
                                                                      get_column_index(X, [features])[0]))
 
         # remove same features has in train
-        if self.sites_features_removed_ and hasattr(self, "clustering_data_columns_"):
+        if self.sites_features_removed_ and hasattr(self, "clustering_data_features_"):
             X.drop(columns=self.sites_features_removed_, inplace=True, axis=1)
 
         columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features = map(
@@ -839,15 +842,16 @@ class AutoCombat(Combat):
             clustering_data_discrete = one_hot_encoder(df=X.iloc[:, columns_discrete_cluster_features],
                                                        columns=list(
                                                            X.iloc[:, columns_discrete_cluster_features].columns))
+            self.clustering_data_discrete_features_ = list(clustering_data_discrete.columns)
 
             # pure transform
-            if hasattr(self, "clustering_data_columns_"):
-                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_columns_, inplace=True)
+            if hasattr(self, "clustering_data_discrete_features_"):
+                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_discrete_features_, inplace=True)
 
         if columns_continuous_cluster_features:
 
             # pure transform
-            if hasattr(self, "clustering_data_columns_"):
+            if hasattr(self, "clustering_data_features_"):
                 clustering_data_continuous = pd.DataFrame([])
                 for col, scal in self.dict_cls_fitted.items():
                     clustering_data_continuous[col] = scal.fit_transform(X.iloc[:, col])
