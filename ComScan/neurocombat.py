@@ -825,9 +825,6 @@ class AutoCombat(Combat):
                     warnings.warn(f"sites_features: {features} removed because more than "
                                   f"{self.threshold_missing_sites_features}% of missing data")
                     self.sites_features_removed_.append(features)
-                    # columns_clustering_features = np.delete(columns_clustering_features,
-                    #                                         np.where(columns_clustering_features ==
-                    #                                                  get_column_index(X, [features])[0]))
                     columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features \
                         = list(map(lambda x: np.delete(x, np.where(x == get_column_index(X, [features])[0])), (
                             columns_clustering_features, columns_discrete_cluster_features,
@@ -835,7 +832,9 @@ class AutoCombat(Combat):
 
         # remove same features has in train
         if self.sites_features_removed_ and hasattr(self, "clustering_data_features_"):
-            X.drop(columns=self.sites_features_removed_, inplace=True, axis=1)
+            for feature_to_remove in self.sites_features_removed_:
+                list(map(lambda x: x.remove(feature_to_remove) if feature_to_remove in x else x,
+                (columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features)))
 
         columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features = map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x,
@@ -856,7 +855,8 @@ class AutoCombat(Combat):
 
             # pure transform
             if hasattr(self, "clustering_data_features_"):
-                clustering_data_continuous = pd.DataFrame([])
+                clustering_data_continuous = pd.DataFrame(index=list(X.index),
+                                                          columns=list(self.dict_cls_fitted.keys()))
                 for col, scal in self.dict_cls_fitted.items():
                     try:
                         clustering_data_continuous[col] = scal.fit_transform(X[col])
