@@ -754,7 +754,14 @@ class AutoCombat(Combat):
                 clustering_data = self.cls_feature_reduction_.transform(clustering_data)
 
             # get labels for sites
-            labels = self.cls_.predict(clustering_data)
+            n_sample = clustering_data.shape[0]
+            size_min = self.size_min
+            if self.size_min * self.info_clustering_["cluster_nb"] > n_sample:
+                size_min = n_sample if self.size_min * self.info_clustering_["cluster_nb"] > n_sample else self.size_min
+
+            # to avoid error in pred
+            self.cls_feature_reduction_.n_clusters = 1  # don't use this args in pred
+            labels = self.cls_.predict(clustering_data, size_min=size_min)
 
             # add sites columns
             X = self._add_sites(X, labels)
@@ -852,7 +859,6 @@ class AutoCombat(Combat):
                 fix_columns(df=clustering_data_discrete, columns=self.clustering_data_discrete_features_, inplace=True)
             else:
                 self.clustering_data_discrete_features_ = list(clustering_data_discrete.columns)
-
 
         if columns_continuous_cluster_features:
 
