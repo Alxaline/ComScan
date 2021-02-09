@@ -757,7 +757,8 @@ class AutoCombat(Combat):
             n_sample = clustering_data.shape[0]
             size_min = self.size_min
             if self.size_min * self.info_clustering_["cluster_nb"] > n_sample:
-                size_min = n_sample if self.size_min * self.info_clustering_["cluster_nb"] > n_sample else self.size_min
+                # tricky to avoid error with this verification size_min * n_clusters > n_samples:
+                size_min = n_sample - 1
 
             # to avoid error in pred
             self.cls_feature_reduction_.n_clusters = 1  # don't use this args in pred
