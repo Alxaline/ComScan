@@ -132,7 +132,7 @@ def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False, ext
             for col in list(extra_cols):
                 matching = [nan_col for nan_col in all_nan_columns if nan_col in col]
                 if len(matching) != 1:
-                    raise ValueError("matching was not found for adding extra columns in one hot encoding")
+                    raise ValueError(f"matching was not found for adding extra columns in one hot encoding {matching}")
                 df[f"{matching[0]}_nan"] += df[col]
                 columns.extend(col)
 
