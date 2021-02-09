@@ -120,7 +120,7 @@ def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False) -> 
 
     extra_cols = set(df.columns) - set(columns)
     if extra_cols:
-        warnings.warn("extra columns:", extra_cols)
+        warnings.warn(f"extra columns: {list(extra_cols)}")
 
     df = df[columns]
     return df
