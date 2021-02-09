@@ -689,7 +689,7 @@ class AutoCombat(Combat):
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
             # get clustering data columns
-            self.clustering_data_columns_ = columns_discrete_cluster_features + columns_continuous_cluster_features
+            self.clustering_data_columns_ = self.sites_features
 
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label, \
             wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
