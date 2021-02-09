@@ -129,7 +129,7 @@ def fix_columns(df: pd.DataFrame, columns: List[str], inplace: bool = False, ext
         warnings.warn(f"extra columns: {list(extra_cols)}")
         if extra_nans:
             for col in list(extra_cols):
-                df[f'{col}_nan'] = df[col]
+                df[f"{col.split('_')[0]}_nan"] += df[col]
                 columns.extend(col)
 
     df = df[columns]
