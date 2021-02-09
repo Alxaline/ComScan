@@ -858,8 +858,10 @@ class AutoCombat(Combat):
 
             # pure transform
             if hasattr(self, "clustering_data_discrete_features_"):
-                fix_columns(df=clustering_data_discrete, columns=self.clustering_data_discrete_features_,
-                            inplace=True, extra_nans=True)
+                clustering_data_discrete = fix_columns(df=clustering_data_discrete,
+                                                       columns=self.clustering_data_discrete_features_,
+                                                       inplace=False,
+                                                       extra_nans=True)
             else:
                 self.clustering_data_discrete_features_ = list(clustering_data_discrete.columns)
 
