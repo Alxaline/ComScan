@@ -27,7 +27,8 @@ args = dict(
 )
 
 setup(setup_requires=['numpy'],
-      install_requires=['simpleitk',
+      install_requires=['numpy',
+                        'simpleitk',
                         'pandas',
                         'kneed',
                         'scipy',
