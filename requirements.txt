@@ -6,6 +6,6 @@ scipy>=1.5.4
 scikit-learn>=0.23.2
 neurocombat>=0.2.7
 git+https://github.com/nipy/nipy.git
-tqdm~=4.54.1
-umap-learn~=0.5.0
-k-means-constrained~=0.5.1
+tqdm>=4.54.1
+umap-learn>=0.5.0
+k-means-constrained>=0.5.1
