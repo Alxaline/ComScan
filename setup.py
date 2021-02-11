@@ -4,10 +4,25 @@ Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
 Created on: Jan 13, 2021
 """
 
-import pip
 from setuptools import setup, find_packages
 
-pip.main(['numpy'])  # call pip to install numpy needed by nipy
+
+def import_or_install(package: str) -> None:
+    """
+    import or install package
+    :param package: package name
+    """
+    try:
+        __import__(package)
+    except Exception:
+        import sys
+        import subprocess
+
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+        __import__(package)
+
+
+import_or_install("numpy")  # install numpy needed by nipy
 
 with open('README.md') as f:
     readme = f.read()
