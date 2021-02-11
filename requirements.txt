@@ -3,7 +3,7 @@ numpy>=1.19.4
 pandas>=1.2.0
 kneed>=0.7.0
 scipy>=1.5.4
-scikit-learn==0.23.2
+scikit-learn>=0.23.2
 neurocombat>=0.2.7
 git+git://github.com/nipy/nipy.git
 tqdm~=4.54.1

@@ -492,7 +492,7 @@ class AutoCombat(Combat):
     sites_features : Target variable for define (acquisition sites or scanner) by clustering.
 
     sites : Target variable for ComScan problems (e.g. acquisition sites or scanner).
-        This argument is Optional. If this argument is provided will run traditional ComBat.
+        This argument is Optional. If this argument is provided will run traditional ComBat else AutoCombat.
         In this case args: sites_features, size_min, method, scaler_clustering, discrete_cluster_features,
         continuous_cluster_features, threshold_missing_sites_features, drop_site_columns
         are unused.
