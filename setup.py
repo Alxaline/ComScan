@@ -28,7 +28,6 @@ args = dict(
 
 setup(setup_requires=['numpy'],
       install_requires=['simpleitk',
-                        'numpy',
                         'pandas',
                         'kneed',
                         'scipy',
