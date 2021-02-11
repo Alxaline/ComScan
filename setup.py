@@ -4,7 +4,10 @@ Author: Alexandre CARRE (alexandre.carre@gustaveroussy.fr)
 Created on: Jan 13, 2021
 """
 
+import pip
 from setuptools import setup, find_packages
+
+pip.main(['numpy'])  # call pip to install numpy needed by nipy
 
 with open('README.md') as f:
     readme = f.read()
