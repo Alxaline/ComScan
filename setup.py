@@ -26,7 +26,8 @@ args = dict(
     keywords="Perform radiomics ComScan based on ComBat scikit-learn compatible.",
 )
 
-setup(install_requires=['simpleitk',
+setup(setup_requires=['numpy'],
+      install_requires=['simpleitk',
                         'numpy',
                         'pandas',
                         'kneed',
