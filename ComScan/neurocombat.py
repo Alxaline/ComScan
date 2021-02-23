@@ -656,13 +656,13 @@ class AutoCombat(Combat):
         __init__ parameters are not touched.
         """
 
-        if hasattr(self, 'cls_', ):
+        if hasattr(self, 'clustering_data_features_', ):
+            del self.clustering_data_features_
             del self.cls_
             del self.cls_feature_reduction_
             del self.clustering_data_features_mean_
             del self.info_clustering_
             del self.X_hat_
-            del self.clustering_data_features_
             del self.dict_cls_fitted
             del self.clustering_data_discrete_features_
 
