@@ -557,7 +557,7 @@ class AutoCombat(Combat):
 
     cls_feature_reduction_ : feature reduction object
 
-    features_reduction_mean_ : dict of mean for clustering data (use for imputation)
+    clustering_data_features_mean_ : dict of mean for clustering data (use for imputation)
 
     X_hat_ : array after fit
 
@@ -659,7 +659,7 @@ class AutoCombat(Combat):
         if hasattr(self, 'cls_', ):
             del self.cls_
             del self.cls_feature_reduction_
-            del self.features_reduction_mean_
+            del self.clustering_data_features_mean_
             del self.info_clustering_
             del self.X_hat_
             del self.clustering_data_features_
@@ -695,14 +695,14 @@ class AutoCombat(Combat):
             self.clustering_data_features_ = self.sites_features
 
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label, \
-            wicss_clusters, best_wicss_cluster, _, self.X_hat_ = optimal_clustering(X=clustering_data,
-                                                                                    size_min=self.size_min,
-                                                                                    method=self.method,
-                                                                                    features_reduction=self.features_reduction,
-                                                                                    random_state=self.random_state)
-            if self.features_reduction:
-                self.features_reduction_mean_ = pd.DataFrame([self.cls_feature_reduction_.mean_],
-                                                             columns=list(clustering_data.columns)).iloc[0].to_dict()
+            wicss_clusters, best_wicss_cluster, _, self.X_hat_, mu = optimal_clustering(X=clustering_data,
+                                                                                        size_min=self.size_min,
+                                                                                        method=self.method,
+                                                                                        features_reduction=self.features_reduction,
+                                                                                        random_state=self.random_state)
+
+            self.clustering_data_features_mean_ = pd.DataFrame([mu],
+                                                               columns=list(clustering_data.columns)).iloc[0].to_dict()
 
             self.info_clustering_ = {
                 'cluster_nb': cluster_nb,
@@ -748,7 +748,7 @@ class AutoCombat(Combat):
             columns_continuous_cluster_features = self._check_data_cluster(X)
 
             # check for NaN for clustering data
-            clustering_data.fillna(value=self.features_reduction_mean_, inplace=True)
+            clustering_data.fillna(value=self.clustering_data_features_mean_, inplace=True)
 
             if self.features_reduction is not None:
                 clustering_data = self.cls_feature_reduction_.transform(clustering_data)

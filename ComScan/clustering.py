@@ -24,7 +24,7 @@ with warnings.catch_warnings():
 def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: int, size_min: Optional[int] = None,
                                max_iter: int = 10, features_reduction: Optional[str] = None, n_components: int = 2,
                                random_state: Optional[int] = None) \
-        -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], np.ndarray, np.ndarray, np.float, np.ndarray]:
+        -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], np.ndarray, np.ndarray, np.float, np.ndarray, np.ndarray]:
     """
     K-Means ComScan with minimum and maximum cluster size constraints with the possibility of missing values.
 
@@ -58,6 +58,8 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
           the closest centroid for all observations in the training set).
         - X_hat:
           Copy of X with the missing values filled in.
+        - mu:
+          Columns means
     """
 
     columns_df = []
@@ -72,7 +74,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     mu = np.nanmean(X, 0, keepdims=1)
     X_hat = np.where(missing, mu, X)
 
-    cls_features_reduction = None
+    cls_features_reduction = object
     if features_reduction is not None:
         assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
         if features_reduction.lower() == "umap":
@@ -81,8 +83,6 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             cls_features_reduction = PCA(n_components=n_components, random_state=random_state)
 
         cls_features_reduction.fit(X_hat)
-        if not hasattr(cls_features_reduction, "mean_"):
-            cls_features_reduction.mean_ = mu
         X_hat = cls_features_reduction.transform(X_hat)
         missing = ~np.isfinite(X_hat)
 
@@ -119,14 +119,14 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     if columns_df:
         X_hat = pd.DataFrame(X_hat, columns=columns_df)
 
-    return cls, cls_features_reduction, labels, centroids, inertia, X_hat
+    return cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu
 
 
 def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, method: str = "silhouette",
                        features_reduction: Optional[str] = None, n_components: int = 2,
                        random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], int, np.ndarray, int, Sequence[
-            np.float], np.float, np.ndarray, np.ndarray]:
+            np.float], np.float, np.ndarray, np.ndarray, np.ndarray]:
     """
     Function to find the optimal clustering using a constrained k means. Two method are available to find the optimal
     number of cluster ``silhouette`` or ``elbow``.
@@ -178,19 +178,21 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
         warnings.warn("Only one cluster is possible")
 
     sil, wcss = [], []
-    all_cls, all_cls_features_reduction, all_labels, all_centroids, all_inertia, all_Xhat = [], [], [], [], [], []
+    all_cls, all_cls_features_reduction, all_labels, \
+    all_centroids, all_inertia, all_Xhat, all_mu = [], [], [], [], [], [], []
 
     for k in K:
-        cls, cls_features_reduction, labels, centroids, inertia, X_hat = kmeans_constrained_missing(X,
-                                                                                                    n_clusters=k,
-                                                                                                    size_min=size_min,
-                                                                                                    max_iter=10,
-                                                                                                    features_reduction=features_reduction,
-                                                                                                    n_components=n_components,
-                                                                                                    random_state=random_state)
+        cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu \
+            = kmeans_constrained_missing(X,
+                                         n_clusters=k,
+                                         size_min=size_min,
+                                         max_iter=10,
+                                         features_reduction=features_reduction,
+                                         n_components=n_components,
+                                         random_state=random_state)
 
         all_cls.append(cls), all_cls_features_reduction.append(cls_features_reduction), all_labels.append(labels), \
-        all_centroids.append(centroids), all_inertia.append(inertia), all_Xhat.append(X_hat)
+        all_centroids.append(centroids), all_inertia.append(inertia), all_Xhat.append(X_hat), all_mu.append(mu)
 
         if method == "elbow":
             wcss.append(inertia)
@@ -208,10 +210,13 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
 
     # get cls, labels, centroids, inertia, Xhat corresponding to cluster_nb
     index = K.index(cluster_nb)
-    cls, cls_features_reduction, labels, centroids, inertia, X_hat = all_cls[index], \
-                                                                     all_cls_features_reduction[index], \
-                                                                     all_labels[index], all_centroids[index], \
-                                                                     all_inertia[index], all_Xhat[index]
+    cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu = all_cls[index], \
+                                                                         all_cls_features_reduction[index], \
+                                                                         all_labels[index], \
+                                                                         all_centroids[index], \
+                                                                         all_inertia[index], \
+                                                                         all_Xhat[index], \
+                                                                         all_mu[index]
 
     # cluster choose for reference is the one which minimizing a criterion known as the inertia
     # or within-cluster sum-of-squares (WCSS)
@@ -233,4 +238,4 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
     best_wicss_cluster = np.min(wicss_clusters)
     ref_label = np.argmin(wicss_clusters)
 
-    return cls, cls_features_reduction, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, centroids, X_hat
+    return cls, cls_features_reduction, cluster_nb, labels, ref_label, wicss_clusters, best_wicss_cluster, centroids, X_hat, mu
