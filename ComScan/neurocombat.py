@@ -754,16 +754,11 @@ class AutoCombat(Combat):
                 clustering_data = self.cls_feature_reduction_.transform(clustering_data)
 
             # get labels for sites
-            n_sample = clustering_data.shape[0]
-            size_min = self.size_min
-            if self.size_min * self.info_clustering_["cluster_nb"] > n_sample:
-                # tricky to avoid error with this verification size_min * n_clusters > n_samples:
-                size_min = n_sample - 1
-
-            # to avoid error in pred
-            self.cls_.n_clusters = 1
-            # can be set to 1 because cls_.predict
-            # don't use this args in pred
+            # tricky to avoid error with this verification:
+            # size_min * n_clusters > n_samples: n_sample = clustering_data.shape[0]
+            size_min = 1
+            self.cls_.n_clusters = 1  # can be set to 1 because cls_.predict don't use this args
+            # don't
             labels = self.cls_.predict(clustering_data, size_min=size_min)
 
             # add sites columns
