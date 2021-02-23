@@ -522,6 +522,7 @@ class AutoCombat(Combat):
         Default is 25.
 
     drop_site_columns : Drop sites columns find by clustering in return.
+        Default is False.
 
     discrete_combat_covariates : Target covariates which are categorical (e.g. male or female).
 
@@ -606,7 +607,7 @@ class AutoCombat(Combat):
                  features_reduction: Optional[str] = None,
                  n_components: int = 2,
                  threshold_missing_sites_features=25,
-                 drop_site_columns: bool = True,
+                 drop_site_columns: bool = False,
                  discrete_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
                  continuous_combat_covariates: Optional[Union[List[str], List[int], str, int]] = None,
                  empirical_bayes: bool = True,
