@@ -701,7 +701,7 @@ class AutoCombat(Combat):
                                                                                         features_reduction=self.features_reduction,
                                                                                         random_state=self.random_state)
 
-            self.clustering_data_features_mean_ = pd.DataFrame([mu],
+            self.clustering_data_features_mean_ = pd.DataFrame(mu,
                                                                columns=list(clustering_data.columns)).iloc[0].to_dict()
 
             self.info_clustering_ = {
