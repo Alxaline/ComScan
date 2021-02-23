@@ -761,7 +761,9 @@ class AutoCombat(Combat):
                 size_min = n_sample - 1
 
             # to avoid error in pred
-            self.cls_feature_reduction_.n_clusters = 1  # don't use this args in pred
+            self.cls_.n_clusters = 1
+            # can be set to 1 because cls_.predict
+            # don't use this args in pred
             labels = self.cls_.predict(clustering_data, size_min=size_min)
 
             # add sites columns
