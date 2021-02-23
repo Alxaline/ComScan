@@ -81,6 +81,8 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             cls_features_reduction = PCA(n_components=n_components, random_state=random_state)
 
         cls_features_reduction.fit(X_hat)
+        if not hasattr(cls_features_reduction, "mean_"):
+            cls_features_reduction.mean_ = mu
         X_hat = cls_features_reduction.transform(X_hat)
         missing = ~np.isfinite(X_hat)
 
