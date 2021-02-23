@@ -660,13 +660,13 @@ class AutoCombat(Combat):
         if hasattr(self, "cls_", ):
             del self.cls_
             del self.cls_feature_reduction_
+            del self.clustering_data_features_
             del self.clustering_data_features_mean_
             del self.info_clustering_
             del self.X_hat_
             del self.dict_cls_fitted
 
-        if hasattr(self, "clustering_data_features_", ):
-            del self.clustering_data_features_
+        if hasattr(self, "clustering_data_discrete_features_", ):
             del self.clustering_data_discrete_features_
 
     def fit(self, X: Union[np.ndarray, pd.DataFrame], *y: Optional[Union[np.ndarray, pd.DataFrame]]) -> "AutoCombat":
