@@ -21,8 +21,12 @@ with warnings.catch_warnings():
     from k_means_constrained import KMeansConstrained
 
 
-def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: int, size_min: Optional[int] = None,
-                               max_iter: int = 10, features_reduction: Optional[str] = None, n_components: int = 2,
+def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray],
+                               n_clusters: int, size_min: Optional[int] = None,
+                               max_iter: int = 10,
+                               features_reduction: Optional[str] = None,
+                               n_components: int = 2,
+                               n_jobs: int = 1,
                                random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], np.ndarray, np.ndarray, np.float, np.ndarray, np.ndarray]:
     """
@@ -40,6 +44,13 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     :param features_reduction: Method for reduction of the embedded space with n_components. Can be pca or umap.
         Default: None
     :param n_components: Dimension of the embedded space for features reduction. Default 2.
+    :param n_jobs: int
+        The number of jobs to use for the computation. This works by computing
+        each of the n_init runs in parallel.
+        If -1 all CPUs are used. If 1 is given, no parallel computing code is
+        used at all, which is useful for debugging. For n_jobs below -1,
+        (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one
+        are used.
     :param random_state: int, RandomState instance or None, optional, default: None
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
@@ -78,7 +89,7 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     if features_reduction is not None:
         assert features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
         if features_reduction.lower() == "umap":
-            cls_features_reduction = umap.UMAP(n_components=n_components, random_state=random_state)
+            cls_features_reduction = umap.UMAP(n_components=n_components, random_state=random_state, n_jobs=n_jobs)
         elif features_reduction.lower() == "pca":
             cls_features_reduction = PCA(n_components=n_components, random_state=random_state)
 
@@ -96,10 +107,11 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
             # faster and makes it easier to check convergence (since labels
             # won't be permuted on every iteration), but might be more prone to
             # getting stuck in local minima.
-            cls = KMeansConstrained(n_clusters, init=prev_centroids, size_min=size_min, random_state=random_state)
+            cls = KMeansConstrained(n_clusters, init=prev_centroids, size_min=size_min, random_state=random_state,
+                                    n_jobs=n_jobs)
         else:
             # do multiple random initializations in parallel
-            cls = KMeansConstrained(n_clusters, size_min=size_min, random_state=random_state)
+            cls = KMeansConstrained(n_clusters, size_min=size_min, random_state=random_state, n_jobs=n_jobs)
 
         # perform on the filled-in data
         labels = cls.fit_predict(X_hat)
@@ -122,8 +134,12 @@ def kmeans_constrained_missing(X: Union[pd.DataFrame, np.ndarray], n_clusters: i
     return cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu
 
 
-def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, method: str = "silhouette",
-                       features_reduction: Optional[str] = None, n_components: int = 2,
+def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
+                       size_min: int = 10,
+                       method: str = "silhouette",
+                       features_reduction: Optional[str] = None,
+                       n_components: int = 2,
+                       n_jobs: int = 1,
                        random_state: Optional[int] = None) \
         -> Tuple[KMeansConstrained, Union[umap.UMAP, PCA], int, np.ndarray, int, Sequence[
             np.float], np.float, np.ndarray, np.ndarray, np.ndarray]:
@@ -139,6 +155,13 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
     :param features_reduction: Method for reduction of the embedded space with n_components. Can be pca or umap.
         Default: None
     :param n_components: Dimension of the embedded space for features reduction. Default 2.
+    :param n_jobs: int
+        The number of jobs to use for the computation. This works by computing
+        each of the n_init runs in parallel.
+        If -1 all CPUs are used. If 1 is given, no parallel computing code is
+        used at all, which is useful for debugging. For n_jobs below -1,
+        (n_cpus + 1 + n_jobs) are used. Thus for n_jobs = -2, all CPUs but one
+        are used.
     :param random_state: int, RandomState instance or None, optional, default: None
         If int, random_state is the seed used by the random number generator;
         If None, the random number generator is the RandomState instance used
@@ -189,6 +212,7 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray], size_min: int = 10, m
                                          max_iter=10,
                                          features_reduction=features_reduction,
                                          n_components=n_components,
+                                         n_jobs=n_jobs,
                                          random_state=random_state)
 
         all_cls.append(cls), all_cls_features_reduction.append(cls_features_reduction), all_labels.append(labels), \
