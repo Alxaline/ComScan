@@ -770,10 +770,9 @@ class AutoCombat(Combat):
             # get labels for sites
             # tricky to avoid error with this verification:
             # size_min * n_clusters > n_samples: n_sample = clustering_data.shape[0]
-            size_min = 1
             self.cls_.n_clusters = 1  # can be set to 1 because cls_.predict don't use this args
             # don't
-            labels = self.cls_.predict(clustering_data, size_min=size_min)
+            labels = self.cls_.predict(clustering_data, size_min=None, size_max=None)
 
             # add sites columns
             X = self._add_sites(X, labels)
