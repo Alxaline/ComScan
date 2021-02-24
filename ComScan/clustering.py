@@ -233,6 +233,9 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
         cluster_nb = K[sil.index(sil_score_max)]
 
     # get cls, labels, centroids, inertia, Xhat corresponding to cluster_nb
+    if cluster_nb == 1:
+        warnings.warn("Only one cluster")
+
     index = K.index(cluster_nb)
     cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu = all_cls[index], \
                                                                          all_cls_features_reduction[index], \
