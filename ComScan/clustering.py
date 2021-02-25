@@ -236,7 +236,11 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
     if cluster_nb == 1:
         warnings.warn("Only one cluster")
 
-    index = K.index(cluster_nb)
+    try:
+        index = K.index(cluster_nb)
+    except ValueError:
+        raise ValueError("Unable to determine a number of cluster")
+
     cls, cls_features_reduction, labels, centroids, inertia, X_hat, mu = all_cls[index], \
                                                                          all_cls_features_reduction[index], \
                                                                          all_labels[index], \
