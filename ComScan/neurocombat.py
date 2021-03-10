@@ -324,7 +324,10 @@ class Combat(BaseEstimator, TransformerMixin):
         # create design matrix
         design = make_design_matrix(Y=X, batch_col=columns_sites,
                                     cat_cols=columns_discrete_covariates, num_cols=columns_continuous_covariates,
-                                    ref_level=self.info_dict_transform_["ref_level"])
+                                    ref_level=self.info_dict_transform_[
+                                        "ref_level"] if self.ref_site in batch_levels else None)
+        # prevent ref_site not in batch levels provided. if it's the case neuroCombat will raise an error in
+        # batch_onehot[:,ref_level] = np.ones(batch_onehot.shape[0])
 
         # create design to take into account: One transform or Missing sites compare to fit
         design_batch = np.eye(self.info_dict_fit_["n_batch"])[X[:, columns_sites[0]].astype(int)]
@@ -584,12 +587,12 @@ class AutoCombat(Combat):
     >>> {"features_1": 0.85, "site_features_0": 2.3, "site_features_1": 0}])
 
     >>> auto_combat = AutoCombat(features=["features_1"], sites_features=["site_features_0", "site_features_1"],
-    >>> continuous_cluster_features=["site_features_0", "site_features_1"])
+    >>> continuous_cluster_features=["site_features_0", "site_features_1"], size_min=2))
     >>> print(auto_combat.fit(data))
     AutoCombat(continuous_cluster_features=['site_features_0', 'site_features_1'],
            discrete_cluster_features=[], features=['features_1'],
            sites=['sites'],
-           sites_features=['site_features_0', 'site_features_1'], size_min=2)
+           sites_features=['site_features_0', 'site_features_1'], size_min=2))
 
     Notes
     -----
