@@ -324,8 +324,7 @@ class Combat(BaseEstimator, TransformerMixin):
         # create design matrix
         design = make_design_matrix(Y=X, batch_col=columns_sites,
                                     cat_cols=columns_discrete_covariates, num_cols=columns_continuous_covariates,
-                                    ref_level=self.info_dict_transform_[
-                                        "ref_level"] if self.ref_site in batch_levels else None)
+                                    ref_level=None)
         # prevent ref_site not in batch levels provided. if it's the case neuroCombat will raise an error in
         # batch_onehot[:,ref_level] = np.ones(batch_onehot.shape[0])
 
