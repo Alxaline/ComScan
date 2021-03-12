@@ -167,6 +167,10 @@ def scaler_encoder(df: pd.DataFrame, columns: List[str], scaler=StandardScaler()
             df[col] = le.fit_transform(df[col])
         except ValueError:
             df[col] = le.fit_transform(pd.DataFrame(df[col]))
+        except TypeError:
+            # TypeError: '<' not supported between instances of 'str' and 'float'
+            # allows to encode nan
+            df[col] = le.fit_transform(df[col].to_list())
         dict_cls_fitted[col] = le
     return df, dict_cls_fitted
 
