@@ -10,9 +10,10 @@ from typing import Union, List, Tuple, Optional
 
 import numpy as np
 import pandas as pd
-from neuroCombat.neuroCombat import make_design_matrix, standardize_across_features, fit_LS_model_and_find_priors, \
+from neuroCombat.neuroCombat import standardize_across_features, fit_LS_model_and_find_priors, \
     find_parametric_adjustments, find_non_parametric_adjustments, find_non_eb_adjustments
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
 from tqdm import tqdm
@@ -246,9 +247,12 @@ class Combat(BaseEstimator, TransformerMixin):
         }
 
         # create design matrix
-        design = make_design_matrix(Y=X, batch_col=columns_sites,
-                                    cat_cols=columns_discrete_covariates, num_cols=columns_continuous_covariates,
-                                    ref_level=ref_level)
+        design = self._make_design_matrix(X=X,
+                                          sites_col=columns_sites,
+                                          ref_site=ref_level,
+                                          discrete_covariates_col=columns_discrete_covariates,
+                                          continuous_covariates_col=columns_continuous_covariates,
+                                          fitting=True)
 
         # standardize data across features
         s_data, self.stand_mean_, self.var_pooled_ = standardize_across_features(X=X[:, columns_features].T,
@@ -328,16 +332,14 @@ class Combat(BaseEstimator, TransformerMixin):
             'sample_per_batch': sample_per_batch.astype('int'),
             'batch_info': [list(np.where(X[:, columns_sites] == idx)[0]) for idx in batch_levels]
         }
-        # create design matrix
-        design = make_design_matrix(Y=X, batch_col=columns_sites,
-                                    cat_cols=columns_discrete_covariates, num_cols=columns_continuous_covariates,
-                                    ref_level=None)
-        # prevent ref_site not in batch levels provided. if it's the case neuroCombat will raise an error in
-        # batch_onehot[:,ref_level] = np.ones(batch_onehot.shape[0])
 
-        # create design to take into account: One transform or Missing sites compare to fit
-        design_batch = np.eye(self.info_dict_fit_["n_batch"])[X[:, columns_sites[0]].astype(int)]
-        design = np.concatenate((design_batch, design[:, self.info_dict_transform_["n_batch"]:]), axis=1)
+        # create design matrix
+        design = self._make_design_matrix(X=X,
+                                          sites_col=columns_sites,
+                                          ref_site=self.ref_site,
+                                          discrete_covariates_col=columns_discrete_covariates,
+                                          continuous_covariates_col=columns_continuous_covariates,
+                                          fitting=False)
 
         self.stand_mean_transform_ = np.repeat(self.stand_mean_[:, [0]],
                                                self.info_dict_transform_["n_sample"], axis=1)
@@ -364,9 +366,10 @@ class Combat(BaseEstimator, TransformerMixin):
 
         return original_X
 
-    def _check_data(self, X: Union[np.ndarray, pd.DataFrame], check_single_covariate: bool = True) -> Tuple[List, List,
-                                                                                                            List, List,
-                                                                                                            List]:
+    def _check_data(self,
+                    X: Union[np.ndarray, pd.DataFrame],
+                    check_single_covariate: bool = True
+                    ) -> Tuple[List, List, List, List, List]:
         """
         Check that the input data array-like or DataFrame of shape (n_samples, n_features) have all the required
         format needed by the Combat()
@@ -417,7 +420,73 @@ class Combat(BaseEstimator, TransformerMixin):
 
         return columns_features, columns_discrete_covariates, columns_continuous_covariates, columns_sites, other_columns
 
-    def _adjust_final_data(self, s_data, design, sample_per_batch, n_sample, batch_info) -> np.ndarray:
+    def _make_design_matrix(self,
+                            X: np.ndarray,
+                            sites_col: int,
+                            ref_site: Optional[Union[str, int]] = None,
+                            discrete_covariates_col: Optional[List[int]] = None,
+                            continuous_covariates_col: Optional[List[int]] = None,
+                            fitting: bool = False) -> np.ndarray:
+        """
+        Method to create a design matrix that contain:
+            - One-hot encoding of the sites [n_samples, n_sites]
+            - One-hot encoding of each discrete covariates (removing
+            the first column) [n_samples, (n_discrete_covivariate_names-1) * n_discrete_covariates]
+            - Each continuous covariates
+
+        :param X: array-like of shape (n_samples, n_features)
+        :param sites_col: int, columns nb
+        :param ref_site: ref sites in sites_col
+        :param discrete_covariates_col: int, columns nb
+        :param continuous_covariates_col: int, columns nb
+        :param fitting: boolean, default is False
+        :return design: the design matrix
+        """
+        design_list = []
+
+        # Sites
+        if fitting:
+            self.site_encoder = OneHotEncoder(sparse=False)
+            self.site_encoder.fit(X[:, sites_col])
+
+        sites_design = self.site_encoder.transform(X[:, sites_col])
+        if ref_site:
+            if len(self.site_encoder.categories_) > 1 or not self.site_encoder.categories_:
+                raise NotImplementedError(f"An error of encoding occurs: {self.site_encoder.categories_}")
+
+            sites_design[:, self.site_encoder.categories_[0].tolist().index(ref_site)] = np.ones(sites_design.shape[0])
+
+        design_list.append(sites_design)
+
+        # Discrete covariates
+        if discrete_covariates_col:
+            if fitting:
+                self.discrete_encoders = []
+                for i in discrete_covariates_col:
+                    discrete_encoder = OneHotEncoder(sparse=False)
+                    discrete_encoder.fit(X[:, [i]])
+                    self.discrete_encoders.append(discrete_encoder)
+
+            for j, i in enumerate(discrete_covariates_col):
+                discrete_encoder = self.discrete_encoders[j]
+                discrete_covariate_one_hot = discrete_encoder.transform(X[:, [i]])
+                discrete_covariate_design = discrete_covariate_one_hot[:, 1:]
+                design_list.append(discrete_covariate_design)
+
+        # Continuous covariates
+        if continuous_covariates_col:
+            design_list.append(X[:, continuous_covariates_col])
+        design = np.hstack(design_list)
+
+        return design
+
+    def _adjust_final_data(self,
+                           s_data: np.ndarray,
+                           design: np.ndarray,
+                           sample_per_batch: np.ndarray,
+                           n_sample: int,
+                           batch_info: np.ndarray
+                           ) -> np.ndarray:
         """
         Adjust final data
 
