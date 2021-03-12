@@ -163,6 +163,7 @@ class Combat(BaseEstimator, TransformerMixin):
                  parametric: bool = True,
                  mean_only: bool = False,
                  return_only_features: bool = False,
+                 raise_ref_site: bool = True,
                  copy: bool = True) -> None:
 
         self.features = features
@@ -174,6 +175,7 @@ class Combat(BaseEstimator, TransformerMixin):
         self.parametric = parametric
         self.mean_only = mean_only
         self.return_only_features = return_only_features
+        self.raise_ref_site = raise_ref_site
         self.copy = copy
 
     def __reset(self) -> None:
@@ -223,7 +225,12 @@ class Combat(BaseEstimator, TransformerMixin):
         else:
             ref_indices = np.argwhere(X[:, columns_sites[0]] == self.ref_site).squeeze()
             if ref_indices.shape[0] == 0:
-                raise ValueError(f"ref_site: {self.ref_site} not found")
+                if self.raise_ref_site:
+                    raise ValueError(f"ref_site: {self.ref_site} not found")
+                else:
+                    ref_level = None
+                    warnings.warn(f"raise_ref_site is False and ref site not found. Setting to None", UserWarning,
+                                  stacklevel=2)
             else:
                 ref_level = np.int(X[ref_indices[0], columns_sites])
 
@@ -832,8 +839,8 @@ class AutoCombat(Combat):
 
         if other_columns.size > 0:
             warnings.warn(
-                f"Some columns: {X.columns[other_columns].tolist()} are not specified as discrete or continuous."
-                f"Clustering will interpret this data as raw.")
+                f"Some columns: {X.columns[other_columns].tolist()} are not specified as discrete or continuous. "
+                f"Clustering will interpret this data as raw.", UserWarning, stacklevel=2)
 
         percent_missing = X.iloc[:, columns_clustering_features].isnull().sum() * 100 / len(X)
         percent_missing = percent_missing.to_dict()
@@ -843,7 +850,8 @@ class AutoCombat(Combat):
             for features, val in percent_missing.items():
                 if val > self.threshold_missing_sites_features:
                     warnings.warn(f"sites_features: {features} removed because more than "
-                                  f"{self.threshold_missing_sites_features}% of missing data")
+                                  f"{self.threshold_missing_sites_features}% of missing data", UserWarning,
+                                  stacklevel=2)
                     self.sites_features_removed_.append(features)
                     columns_clustering_features, columns_discrete_cluster_features, columns_continuous_cluster_features \
                         = list(map(lambda x: np.delete(x, np.where(x == get_column_index(X, [features])[0])), (

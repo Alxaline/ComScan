@@ -198,7 +198,7 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
                          f"max cluster is {max_cluster - 1} with a size_min of {size_min}")
 
     if max_cluster - 1 == 1:
-        warnings.warn("Only one cluster is possible")
+        warnings.warn("Only one cluster is possible", RuntimeWarning, stacklevel=2)
 
     sil, wcss = [], []
     all_cls, all_cls_features_reduction, all_labels, \
