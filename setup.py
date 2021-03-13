@@ -46,7 +46,7 @@ args = dict(
 
 setup(setup_requires=['numpy'],
       install_requires=['numpy',
-                        'yellowbrick'
+                        'yellowbrick',
                         'simpleitk',
                         'pandas',
                         'kneed',
