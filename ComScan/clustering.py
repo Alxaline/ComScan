@@ -51,7 +51,7 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
 
     em_iter :  int, default: 10
         expectation–maximization (EM) iteration for convergence of missing
-        values
+        values. Use when no features reduction is applied and missing values.
 
     n_init : int, default: 10
         Number of times the k-means algorithm will be run with different
@@ -205,8 +205,9 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
         self.mu_ = np.nanmean(X, 0, keepdims=1)
         self.X_hat_ = np.where(missing, self.mu_, X)
 
+        self.cls_ = None
         self.cls_features_reduction_ = None
-        if self.features_reduction is not None:
+        if self.features_reduction is not None or not np.any(missing):
             assert self.features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
             if self.features_reduction.lower() == "umap":
                 self.cls_features_reduction_ = umap.UMAP(n_components=self.n_components, random_state=self.random_state,
@@ -215,44 +216,48 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
                 self.cls_features_reduction_ = PCA(n_components=self.n_components, random_state=self.random_state)
 
             self.cls_features_reduction_.fit(self.X_hat_)
-            X_hat = self.cls_features_reduction_.transform(self.X_hat_)
-            missing = ~np.isfinite(X_hat)
+            self.X_hat_ = self.cls_features_reduction_.transform(self.X_hat_)
 
-        self.cls_ = None
-        prev_labels, labels = np.array([]), np.array([])
-        prev_centroids, centroids = np.array([]), np.array([])
+            self.cls_ = KMeansConstrained(self.n_clusters,
+                                          init="k-means++",
+                                          size_min=self.size_min,
+                                          random_state=self.random_state,
+                                          n_jobs=self.n_jobs)
 
-        for i in range(self.em_iter):
-            if i > 0:
-                # initialize KMeans with the previous set of centroids. this is much
-                # faster and makes it easier to check convergence (since labels
-                # won't be permuted on every iteration), but might be more prone to
-                # getting stuck in local minima.
-                self.cls_ = KMeansConstrained(self.n_clusters,
-                                              init=prev_centroids,
-                                              size_min=self.size_min,
-                                              random_state=self.random_state,
-                                              n_jobs=self.n_jobs)
-            else:
-                # do multiple random initializations in parallel
-                self.cls_ = KMeansConstrained(self.n_clusters,
-                                              init="k-means++",
-                                              size_min=self.size_min,
-                                              random_state=self.random_state,
-                                              n_jobs=self.n_jobs)
+        else:
+            prev_labels, labels = np.array([]), np.array([])
+            prev_centroids, centroids = np.array([]), np.array([])
+            for i in range(self.em_iter):
+                if i > 0:
+                    # initialize KMeans with the previous set of centroids. this is much
+                    # faster and makes it easier to check convergence (since labels
+                    # won't be permuted on every iteration), but might be more prone to
+                    # getting stuck in local minima.
+                    self.cls_ = KMeansConstrained(self.n_clusters,
+                                                  init=prev_centroids,
+                                                  size_min=self.size_min,
+                                                  random_state=self.random_state,
+                                                  n_jobs=self.n_jobs)
+                else:
+                    # do multiple random initializations in parallel
+                    self.cls_ = KMeansConstrained(self.n_clusters,
+                                                  init="k-means++",
+                                                  size_min=self.size_min,
+                                                  random_state=self.random_state,
+                                                  n_jobs=self.n_jobs)
 
-            # perform on the filled-in data
-            labels = self.cls_.fit_predict(self.X_hat_)
-            self.centroids_ = self.cls_.cluster_centers_
+                # perform on the filled-in data
+                labels = self.cls_.fit_predict(self.X_hat_)
+                self.centroids_ = self.cls_.cluster_centers_
 
-            # fill in the missing values based on their cluster centroids
-            self.X_hat_[missing] = self.centroids_[labels][missing]
+                # fill in the missing values based on their cluster centroids
+                self.X_hat_[missing] = self.centroids_[labels][missing]
 
-            # when the labels have stopped changing then we have converged
-            if i > 0 and np.all(labels == prev_labels):
-                break
-            prev_labels = labels
-            prev_centroids = self.cls_.cluster_centers_
+                # when the labels have stopped changing then we have converged
+                if i > 0 and np.all(labels == prev_labels):
+                    break
+                prev_labels = labels
+                prev_centroids = self.cls_.cluster_centers_
 
         self.inertia_ = self.cls_.inertia_
         self.labels_ = self.cls_.labels_
@@ -517,7 +522,10 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
             estimator.fit(X, **kwargs)
             # Append the time and score to our plottable metrics
             self.k_timers_.append(time.time() - start)
-            self.k_scores_.append(self.scoring_metric(X, estimator.labels_))
+            # get X_hat_ return from fit if exist
+            # avoid: ValueError: Input contains NaN, infinity or a value too large for dtype('float64').
+            self.k_scores_.append(
+                self.scoring_metric(X if not hasattr(estimator, "X_hat_") else estimator.X_hat_, estimator.labels_))
             self.estimators_.append(estimator)
 
         if self.locate_elbow:
