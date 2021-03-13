@@ -577,7 +577,8 @@ class AutoCombat(Combat):
 
     size_min : Constraint of the minimum size of site for clustering.
 
-    method : "silhouette" or "elbow". Method to define the optimal number of cluster. Default: silhouette.
+    metric : "distortion", "silhouette" or "calinski_harabasz".
+        Metric to define the optimal number of cluster. Default: distortion.
 
     use_ref_site : Use a ref site to be used as reference for batch adjustment. The ref site used is the cluster
         with the minimal inertia. i.e minimizing within-cluster sum-of-squares.
@@ -685,7 +686,7 @@ class AutoCombat(Combat):
                  sites_features: Union[List[str], List[int], str, int] = None,
                  sites: Optional[Union[str, int]] = None,
                  size_min: int = 10,
-                 method: str = "silhouette",
+                 metric: str = "distortion",
                  use_ref_site: bool = False,
                  scaler_clustering=StandardScaler(),
                  discrete_cluster_features: Optional[Union[List[str], List[int], str, int]] = None,
@@ -720,7 +721,7 @@ class AutoCombat(Combat):
         self.features = features
         self.sites_features = sites_features
         self.size_min = size_min
-        self.method = method
+        self.metric = metric
         self.use_ref_site = use_ref_site
         self.scaler_clustering = scaler_clustering
         self.discrete_cluster_features = discrete_cluster_features
@@ -788,7 +789,7 @@ class AutoCombat(Combat):
             self.cls_, self.cls_feature_reduction_, cluster_nb, labels, ref_label, \
             wicss_clusters, best_wicss_cluster, _, self.X_hat_, mu = optimal_clustering(X=clustering_data,
                                                                                         size_min=self.size_min,
-                                                                                        method=self.method,
+                                                                                        metric=self.metric,
                                                                                         features_reduction=self.features_reduction,
                                                                                         n_jobs=self.n_jobs,
                                                                                         random_state=self.random_state)
