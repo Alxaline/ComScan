@@ -698,6 +698,9 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
                                         metric=metric,
                                         locate_elbow=True)
 
+    # fit
+    elbow_visualizer.fit(X)
+
     if visualize:
         elbow_visualizer.show()
 
