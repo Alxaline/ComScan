@@ -46,7 +46,8 @@ args = dict(
 
 setup(setup_requires=['numpy'],
       install_requires=['numpy',
-                        'yellowbrick',  # no use original because need no restriction on numpy
+                        'yellowbrick @ https://github.com/Alxaline/yellowbrick.git#egg=yellowbrick',
+                        # no use original because need no restriction on numpy
                         'simpleitk',
                         'pandas',
                         'kneed',
