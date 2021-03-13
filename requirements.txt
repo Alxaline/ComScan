@@ -10,3 +10,4 @@ git+https://github.com/nipy/nipy.git
 tqdm>=4.59
 umap-learn>=0.5.1
 k-means-constrained>=0.5.2
+git+https://github.com/Alxaline/yellowbrick.git
