@@ -224,6 +224,9 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
                                           random_state=self.random_state,
                                           n_jobs=self.n_jobs)
 
+            self.labels_ = self.cls_.fit_predict(self.X_hat_)
+            self.centroids_ = self.cls_.cluster_centers_
+
         else:
             prev_labels, labels = np.array([]), np.array([])
             prev_centroids, centroids = np.array([]), np.array([])
@@ -247,20 +250,19 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
                                                   n_jobs=self.n_jobs)
 
                 # perform on the filled-in data
-                labels = self.cls_.fit_predict(self.X_hat_)
+                self.labels_ = self.cls_.fit_predict(self.X_hat_)
                 self.centroids_ = self.cls_.cluster_centers_
 
                 # fill in the missing values based on their cluster centroids
-                self.X_hat_[missing] = self.centroids_[labels][missing]
+                self.X_hat_[missing] = self.centroids_[self.labels_][missing]
 
                 # when the labels have stopped changing then we have converged
-                if i > 0 and np.all(labels == prev_labels):
+                if i > 0 and np.all(self.labels_ == prev_labels):
                     break
-                prev_labels = labels
+                prev_labels = self.labels_
                 prev_centroids = self.cls_.cluster_centers_
 
         self.inertia_ = self.cls_.inertia_
-        self.labels_ = self.cls_.labels_
         self.cluster_centers_ = self.cls_.cluster_centers_
 
         if columns_df:
