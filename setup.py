@@ -56,4 +56,5 @@ setup(setup_requires=['numpy'],
                         'nipy @ git+https://github.com/nipy/nipy.git#egg=nipy',
                         'umap-learn',
                         'k-means-constrained'
+                        'yellowbrick'
                         ], **args)
