@@ -106,6 +106,9 @@ class Combat(BaseEstimator, TransformerMixin):
     return_only_features : Return only features.
         Default is False.
 
+    raise_ref_site : raise when the reference site pass as arguments not exist, else set to no reference.
+        Default is True.
+
     copy : Set to False to perform inplace row normalization and avoid a copy (if the input is already a numpy array).
         Default is True.
 
