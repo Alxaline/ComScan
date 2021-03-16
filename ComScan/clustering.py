@@ -208,15 +208,17 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
         self.cls_ = None
         self.cls_features_reduction_ = None
         if self.features_reduction is not None or not np.any(missing):
-            assert self.features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
-            if self.features_reduction.lower() == "umap":
-                self.cls_features_reduction_ = umap.UMAP(n_components=self.n_components, random_state=self.random_state,
-                                                         n_jobs=self.n_jobs)
-            elif self.features_reduction.lower() == "pca":
-                self.cls_features_reduction_ = PCA(n_components=self.n_components, random_state=self.random_state)
+            if self.features_reduction:
+                assert self.features_reduction in ["umap", "pca"], "method need to be 'umap' or 'pca'"
+                if self.features_reduction.lower() == "umap":
+                    self.cls_features_reduction_ = umap.UMAP(n_components=self.n_components,
+                                                             random_state=self.random_state,
+                                                             n_jobs=self.n_jobs)
+                elif self.features_reduction.lower() == "pca":
+                    self.cls_features_reduction_ = PCA(n_components=self.n_components, random_state=self.random_state)
 
-            self.cls_features_reduction_.fit(self.X_hat_)
-            self.X_hat_ = self.cls_features_reduction_.transform(self.X_hat_)
+                self.cls_features_reduction_.fit(self.X_hat_)
+                self.X_hat_ = self.cls_features_reduction_.transform(self.X_hat_)
 
             self.cls_ = KMeansConstrained(self.n_clusters,
                                           init="k-means++",
