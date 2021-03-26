@@ -11,6 +11,7 @@ from typing import Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 import umap
+from joblib import Parallel, delayed
 from kneed import KneeLocator
 from scipy.spatial.distance import cdist
 from sklearn.base import TransformerMixin, ClusterMixin, BaseEstimator
@@ -397,6 +398,30 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         clustering problem also represents the pivot of the elbow curve. The point is
         labeled with a dashed line and annotated with the score and k values.
 
+    n_jobs : int, default=None
+        Number of jobs to run in parallel. Training the estimator and computing
+        the score are parallelized over the cross-validation splits.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+
+    verbose : int, default=0
+        The verbosity level.
+
+    pre_dispatch : int or str, default='2*n_jobs'
+        Controls the number of jobs that get dispatched during parallel
+        execution. Reducing this number can be useful to avoid an
+        explosion of memory consumption when more jobs get dispatched
+        than CPUs can process. This parameter can be:
+            - None, in which case all the jobs are immediately
+              created and spawned. Use this for lightweight and
+              fast-running jobs, to avoid delays due to on-demand
+              spawning of the jobs
+            - An int, giving the exact number of total jobs that are
+              spawned
+            - A str, giving an expression as a function of n_jobs,
+              as in '2*n_jobs'
+
     kwargs : dict
         Keyword arguments that are passed to the base class and may influence
         the visualization as defined in other Visualizers.
@@ -414,6 +439,8 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
 
     elbow_score_ : float
         The silhouette score corresponding to the optimal value of k.
+
+    estimators_ :
 
     Examples
     --------
@@ -461,6 +488,9 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
             metric="distortion",
             timings=True,
             locate_elbow=True,
+            n_jobs=None,
+            verbose=0,
+            pre_dispatch='2*n_jobs',
             **kwargs
     ):
         super(KElbowVisualizer, self).__init__(estimator, ax=ax, **kwargs)
@@ -477,6 +507,9 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         self.metric = metric
         self.timings = timings
         self.locate_elbow = locate_elbow
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        self.pre_dispatch = pre_dispatch
 
         # Convert K into a tuple argument if an integer
         if isinstance(k, int):
@@ -517,20 +550,16 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         self.k_timers_ = []
         self.estimators_ = []
 
-        for k in self.k_values_:
-            # Compute the start time for each  model
-            start = time.time()
-            # Set the k value and fit the model
-            estimator = clone(self.estimator)
-            estimator.set_params(n_clusters=k)
-            estimator.fit(X, **kwargs)
-            # Append the time and score to our plottable metrics
-            self.k_timers_.append(time.time() - start)
-            # get X_hat_ return from fit if exist
-            # avoid: ValueError: Input contains NaN, infinity or a value too large for dtype('float64').
-            self.k_scores_.append(
-                self.scoring_metric(X if not hasattr(estimator, "X_hat_") else estimator.X_hat_, estimator.labels_))
-            self.estimators_.append(estimator)
+        # We clone the estimator to make sure that all the folds are
+        # independent, and that it is pickle-able.
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=self.verbose,
+                            pre_dispatch=self.pre_dispatch)
+        results = parallel(
+            delayed(_fit_and_score)(
+                clone(self.estimator), X, k, self.scoring_metric, **kwargs)
+            for k in self.k_values_)
+
+        self.k_scores_, self.k_timers_, self.estimators_ = zip(*results)
 
         if self.locate_elbow:
             locator_kwargs = {
@@ -623,6 +652,40 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
             self.axes[1].tick_params("y", colors="g")
 
 
+def _fit_and_score(estimator, X, n_clusters, scoring_metric, **kwargs):
+    """
+    Fit estimator and compute scores for a given dataset split.
+
+    Parameters
+    ----------
+    estimator : estimator object implementing 'fit'
+        The object to use to fit the data.
+    X : array-like of shape (n_samples, n_features)
+        The data to fit.
+    n_clusters : int,
+        The number of clusters (k) to form as well as the number of centroids to generate.
+    scoring_metric : scoring_metric of KElbow
+
+    Returns
+    -------
+    score : The silhouette score corresponding to the n_clusters.
+
+    timers : The time taken to fit n KMeans model.
+
+    estimator : a scikit-learn fitted clusterer
+    """
+    start = time.time()
+    # Set the k value and fit the model
+    estimator.set_params(n_clusters=n_clusters)
+    estimator.fit(X, **kwargs)
+    # Append the time and score to our plottable metrics
+    timers = time.time() - start
+    # get X_hat_ return from fit if exist
+    # avoid: ValueError: Input contains NaN, infinity or a value too large for dtype('float64').
+    score = scoring_metric(X if not hasattr(estimator, "X_hat_") else estimator.X_hat_, estimator.labels_)
+    return score, timers, estimator,
+
+
 def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
                        size_min: int = 10,
                        metric: str = "distortion",
@@ -704,11 +767,12 @@ def optimal_clustering(X: Union[pd.DataFrame, np.ndarray],
                                                                            em_iter=10,
                                                                            features_reduction=features_reduction,
                                                                            n_components=n_components,
-                                                                           n_jobs=n_jobs,
+                                                                           n_jobs=1,
                                                                            random_state=random_state),
                                         k=K,
                                         metric=metric,
-                                        locate_elbow=True)
+                                        locate_elbow=True,
+                                        n_jobs=n_jobs)
 
     # fit
     elbow_visualizer.fit(X)
