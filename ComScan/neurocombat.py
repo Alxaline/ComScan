@@ -123,6 +123,9 @@ class Combat(BaseEstimator, TransformerMixin):
     var_pooled_ : array-like
          Variance pooled
 
+    mod_mean_ : array-like
+        Mod mean
+
     gamma_star_ : array-like
         Adjustement gamma star
 
@@ -258,9 +261,10 @@ class Combat(BaseEstimator, TransformerMixin):
                                           fitting=True)
 
         # standardize data across features
-        s_data, self.stand_mean_, self.var_pooled_ = standardize_across_features(X=X[:, columns_features].T,
-                                                                                 design=design,
-                                                                                 info_dict=self.info_dict_fit_)
+        s_data, self.stand_mean_, self.var_pooled_, self.mod_mean_ = standardize_across_features(
+            X=X[:, columns_features].T,
+            design=design,
+            info_dict=self.info_dict_fit_)
 
         # fit L/S models and find priors
         LS_dict = fit_LS_model_and_find_priors(s_data=s_data, design=design,
@@ -346,11 +350,15 @@ class Combat(BaseEstimator, TransformerMixin):
 
         self.stand_mean_transform_ = np.repeat(self.stand_mean_[:, [0]],
                                                self.info_dict_transform_["n_sample"], axis=1)
+        self.mod_mean_transform_ = np.repeat(self.mod_mean_[:, [0]],
+                                             self.info_dict_transform_["n_sample"], axis=1)
 
-        s_data = ((X[:, columns_features].T - self.stand_mean_transform_) / np.dot(np.sqrt(self.var_pooled_),
-                                                                                   np.ones(
-                                                                                       (1, self.info_dict_transform_[
-                                                                                           "n_sample"]))))
+        s_data = ((X[:, columns_features].T - self.stand_mean_transform_ - self.mod_mean_transform_) / np.dot(
+            np.sqrt(self.var_pooled_),
+            np.ones(
+                (1, self.info_dict_transform_[
+                    "n_sample"]))))
+
         # adjust data
         # ** obligatory to match the fit data for adjust_data (sample_per_batch, n_sample, batch_info)
         bayes_data = self._adjust_final_data(s_data=s_data, design=design, sample_per_batch=np.array(
@@ -514,7 +522,8 @@ class Combat(BaseEstimator, TransformerMixin):
             bayes_data[:, batch_idxs] = numer / denom
 
         vpsq = np.sqrt(self.var_pooled_).reshape((len(self.var_pooled_), 1))
-        bayes_data = bayes_data * np.dot(vpsq, np.ones((1, n_sample))) + self.stand_mean_transform_
+        bayes_data = bayes_data * np.dot(vpsq,
+                                         np.ones((1, n_sample))) + self.stand_mean_transform_ + self.mod_mean_transform_
 
         return bayes_data
 
