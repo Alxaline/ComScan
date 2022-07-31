@@ -37,7 +37,6 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
 
     Parameters
     ----------
-
     n_clusters : int, optional, default: 8
         The number of clusters to form as well as the number of
         centroids to generate.
@@ -122,7 +121,6 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
 
     Examples
     --------
-
     >>> X = np.array([[1, 2], [1, 4], [1, 0],
     ...                [4, 2], [4, 4], [4, 0]])
     >>> clf = KMeansConstrainedMissing(
@@ -145,12 +143,12 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
 
     The constrained assignment is formulated as a Minimum Cost Flow (MCF) linear network optimisation
     problem. This is then solved using a cost-scaling push-relabel algorithm. The implementation used is
-     Google's Operations Research tools's `SimpleMinCostFlow`.
+    Google's Operations Research tools's `SimpleMinCostFlow`.
 
     Ref:
-    1. Bradley, P. S., K. P. Bennett, and Ayhan Demiriz. "Constrained k-means clustering."
+        1. Bradley, P. S., K. P. Bennett, and Ayhan Demiriz. "Constrained k-means clustering."
         Microsoft Research, Redmond (2000): 1-8.
-    2. Google's SimpleMinCostFlow implementation:
+        2. Google's SimpleMinCostFlow implementation:
         https://github.com/google/or-tools/blob/master/ortools/graph/min_cost_flow.h
     """
 
@@ -350,20 +348,20 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
     inflection point, it is a good indication that the underlying model fits
     best at that point.
 
-    # yellowbrick.cluster.elbow
-    # Implements the elbow method for determining the optimal number of clusters.
-    #
-    # Author:   Benjamin Bengfort
-    # Created:  Thu Mar 23 22:36:31 2017 -0400
-    #
-    # Copyright (C) 2016 The scikit-yb developers
-    # For license information, see LICENSE.txt
-    #
-    # ID: elbow.py [5a370c8] benjamin@bengfort.com $
+    .. note::
+        | yellowbrick.cluster.elbow
+        | Implements the elbow method for determining the optimal number of clusters.
+
+        | Author:   Benjamin Bengfort
+        | Created:  Thu Mar 23 22:36:31 2017 -0400
+
+        | Copyright (C) 2016 The scikit-yb developers
+        | For license information, see LICENSE.txt
+
+        | ID: elbow.py [5a370c8] benjamin@bengfort.com
 
     Parameters
     ----------
-
     estimator : a scikit-learn clusterer
         Should be an instance of an unfitted clusterer, specifically ``KMeans`` or
         ``MiniBatchKMeans``. If it is not a clusterer, an exception is raised.
@@ -403,7 +401,6 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         the score are parallelized over the cross-validation splits.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
         ``-1`` means using all processors.
-        for more details.
 
     verbose : int, default: 0
         The verbosity level.
@@ -413,14 +410,14 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
         than CPUs can process. This parameter can be:
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-            - An int, giving the exact number of total jobs that are
-              spawned
-            - A str, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+        - None, in which case all the jobs are immediately
+        created and spawned. Use this for lightweight and
+        fast-running jobs, to avoid delays due to on-demand
+        spawning of the jobs
+        - An int, giving the exact number of total jobs that are
+        spawned
+        - A str, giving an expression as a function of n_jobs,
+        as in '2*n_jobs'
 
     kwargs : dict
         Keyword arguments that are passed to the base class and may influence
@@ -440,11 +437,11 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
     elbow_score_ : float
         The silhouette score corresponding to the optimal value of k.
 
-    estimators_ :
+    estimators_ : ``BaseEstimator``
+        a scikit-learn fitted estimator
 
     Examples
     --------
-
     >>> from yellowbrick.cluster import KElbowVisualizer
     >>> from sklearn.cluster import KMeans
     >>> model = KElbowVisualizer(KMeans(), k=10)
@@ -455,7 +452,6 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
 
     Notes
     -----
-
     Modification from yellowbrick consist of get the best_estimator based
     on the finded elbow_value
 
@@ -470,7 +466,8 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
     For more on the knee point detection algorithm see the paper `"Finding a "kneedle"
     in a Haystack" <https://raghavan.usc.edu//papers/kneedle-simplex11.pdf>`_.
 
-    .. seealso:: The scikit-learn documentation for the `silhouette_score
+    .. seealso::
+        The scikit-learn documentation for the `silhouette_score
         <https://bit.ly/2LYWjYb>`_ and `calinski_harabasz_score
         <https://bit.ly/2ItAgts>`_. The default, ``distortion_score``, is
         implemented in ``yellowbrick.cluster.elbow``.

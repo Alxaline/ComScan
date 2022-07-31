@@ -142,3 +142,4 @@ dmypy.json
 
 # result folder
 fit_data
+transform_data

@@ -24,7 +24,7 @@ def import_or_install(package: str) -> None:
 
 import_or_install("numpy")  # install numpy needed by nipy
 
-with open('README.md') as f:
+with open('README.rst') as f:
     readme = f.read()
 
 with open('LICENSE') as f:

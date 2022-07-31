@@ -10,7 +10,8 @@ Welcome to ComScan's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   ComScan
+   introduction
+   modules
 
 
 Indices and tables
