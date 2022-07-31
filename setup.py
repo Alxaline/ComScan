@@ -36,7 +36,6 @@ args = dict(
     description="ComBat, AutoCombat and ImageCombat ComScan scikit-learn compatible",
     long_description=readme,
     author='Alexandre CARRE',
-    author_email='alexandre.carre@gustaveroussy.fr',
     url='https://github.com/Alxaline/ComScan',
     license=license,
     packages=find_packages(exclude=['docs']),

@@ -13,8 +13,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../..'))
-print(os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
+# sys.path.insert(0, os.path.abspath('../..'))
+print(os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -49,7 +50,7 @@ extensions = [
 master_doc = 'index'
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

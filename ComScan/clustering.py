@@ -72,7 +72,7 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
     tol : float, default: 1e-4
         Relative tolerance with regards to inertia to declare convergence
 
-    verbose : int, default 0
+    verbose : int, default: 0
         Verbosity mode.
 
     random_state : int, RandomState instance or None, optional, default: None
@@ -81,14 +81,14 @@ class KMeansConstrainedMissing(TransformerMixin, ClusterMixin, BaseEstimator):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
-    copy_x : boolean, default True
+    copy_x : boolean, default: True
         When pre-computing distances it is more numerically accurate to center
         the data first.  If copy_x is True, then the original data is not
         modified.  If False, the original data is modified, and put back before
         the function returns, but small numerical differences may be introduced
         by subtracting and then adding the data mean.
 
-    n_jobs : int
+    n_jobs : int, default: 1
         The number of jobs to use for the computation. This works by computing
         each of the n_init runs in parallel.
 
@@ -398,17 +398,17 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         clustering problem also represents the pivot of the elbow curve. The point is
         labeled with a dashed line and annotated with the score and k values.
 
-    n_jobs : int, default=None
+    n_jobs : int, default: None
         Number of jobs to run in parallel. Training the estimator and computing
         the score are parallelized over the cross-validation splits.
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
-        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        ``-1`` means using all processors.
         for more details.
 
-    verbose : int, default=0
+    verbose : int, default: 0
         The verbosity level.
 
-    pre_dispatch : int or str, default='2*n_jobs'
+    pre_dispatch : int or str, default: '2*n_jobs'
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
@@ -474,10 +474,6 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         <https://bit.ly/2LYWjYb>`_ and `calinski_harabasz_score
         <https://bit.ly/2ItAgts>`_. The default, ``distortion_score``, is
         implemented in ``yellowbrick.cluster.elbow``.
-
-    .. todo:: add parallelization option for performance
-    .. todo:: add different metrics for scores and silhouette
-    .. todo:: add timing information about how long it's taking
     """
 
     def __init__(
