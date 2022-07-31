@@ -12,7 +12,8 @@ pip install -r requirements.txt
 
 ### 2) To automatically generate the documentation:
 ```
-sphinx-apidoc -f -o source ../ComScan
+cd docs
+sphinx-apidoc -fMe -o source ../ComScan
 ```
 
 ### 3) Then to build the html or LaTeX version: 

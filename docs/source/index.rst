@@ -11,7 +11,7 @@ Welcome to ComScan's documentation!
    :caption: Contents:
 
    introduction
-   modules
+   Python API <modules.rst>
 
 
 Indices and tables

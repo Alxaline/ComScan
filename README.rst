@@ -20,7 +20,7 @@ the site or scanners, as a change in a machine parameter may be more
 appropriate for another scanner type or site. AutoComBat has thus been
 implemented, and it allows to associate a sample to a given site /
 scanner by a clustering method. Thus, the site/scanner can be defined by
-dicom tags defining the machine (i.e. magnetic field, TI, TR …) or
+dicom tags defining the machine (i.e. magnetic field, TI, TR …) or
 metrics of image quality.
 
 This repository has been coded to be compatible with
@@ -61,6 +61,11 @@ Method 2: Development Installation
    git clone https://github.com/Alxaline/ComScan.git
    cd ComScan
    pip install -e .
+
+Documentation
+-------------
+
+https://comscan.readthedocs.io/en/latest/
 
 How to cite ?
 -------------
